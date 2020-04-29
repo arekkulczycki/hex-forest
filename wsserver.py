@@ -21,6 +21,11 @@ def styles(request):
         return request.Response(text=html_file.read(), mime_type='text/css')
 
 
+def favicon(request):
+    with open('hex.png') as favicon:
+        return request.Response(text=favicon.read(), mime_type='image/png')
+
+
 def get_board_status(request):
     with open('index.html') as html_file:
         template = Template(html_file.read())
@@ -189,8 +194,9 @@ r = app.router
 r.add_route('/', get_board_status)
 r.add_route('/style.css', styles)
 r.add_route('/async', asynchronous)
+r.add_route('/favicon.ico', favicon)
 
 websocket_server = threading.Thread(target=run_websocket, daemon=True)
 websocket_server.start()
 
-app.run('localhost', 80)
+app.run('localhost', 8000)
