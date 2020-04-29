@@ -1,6 +1,6 @@
 import asyncio
-import base64
 import json
+import os
 import threading
 from json import JSONDecodeError
 
@@ -8,7 +8,7 @@ import websockets
 from japronto import Application
 from jinja2 import Template
 
-from models import Player, DictEncoder, Board, Cell
+from models import Player, Board, Cell
 
 players = {1: None, 2: None}
 clients = {}
@@ -202,6 +202,7 @@ def run(host, port):
     websocket_server.start()
 
     # return app
+    port = os.environ.get('PORT')
     app.run(host, port)
 
 
