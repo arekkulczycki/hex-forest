@@ -187,7 +187,7 @@ def run_websocket():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(
-        websockets.serve(receive, 'localhost', port))
+        websockets.serve(receive, '0.0.0.0', port))
     asyncio.get_event_loop().run_forever()
     print(f'started websocket server on port {port}')
 
