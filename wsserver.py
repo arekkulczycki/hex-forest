@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import sys
 import threading
 from json import JSONDecodeError
 
@@ -188,6 +189,7 @@ def run_websocket():
     loop.run_until_complete(
         websockets.serve(receive, 'localhost', port))
     asyncio.get_event_loop().run_forever()
+    print(f'started websocket server on port {port}')
 
 
 def run(host):
@@ -199,13 +201,19 @@ def run(host):
     r.add_route('/async', asynchronous)
     r.add_route('/favicon.ico', favicon)
 
-    # websocket_server = threading.Thread(target=run_websocket, daemon=True)
-    # websocket_server.start()
-
     # return app
     port = int(os.environ.get('PORT'))
     app.run(host, port)
 
 
 if __name__ == "__main__":
-    run('0.0.0.0')
+    target = sys.argv[1]
+    if target == 'websocket':
+        websocket_server = threading.Thread(target=run_websocket, daemon=True)
+        websocket_server.start()
+    elif target == 'all':
+        run('localhost')
+        websocket_server = threading.Thread(target=run_websocket, daemon=True)
+        websocket_server.start()
+    else:
+        run('0.0.0.0')
