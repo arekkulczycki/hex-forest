@@ -1,0 +1,128 @@
+<html lang="en-us">
+<head title="boardgame">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script>
+        let socket;
+        function connect() {
+            socket = new WebSocket('ws://0.0.0.0:8765');
+
+            socket.onopen = function (e) {
+                console.log('Connection established');
+                console.log('Sending to server');
+                socket.send('socket opened');
+            };
+
+            socket.onmessage = function (event) {
+                let data = JSON.parse(event.data);
+                switch (data.type) {
+                    case 'info':
+                        console.log(data.message);
+                        break;
+                    case 'move':
+                        let player_id = data.move.player_id;
+                        let id = data.move.id;
+                        let cx = data.move.cx;
+                        let cy = data.move.cy;
+                        putStone(id, cx, cy, player_id);
+                        break;
+                    case 'chat':
+                        console.log(data);
+                        let color = data.played_id === 1 ? 'red' : 'blue';
+                        let message = `<div style="color: ${color};">${data.message}</div>`;
+                        $('#chat').append(message);
+                        break;
+                    default:
+                        console.log('Unsupported event', data)
+                }
+            };
+
+            socket.onclose = function (event) {
+                if (event.wasClean) {
+                    console.log(`Connection closed cleanly, code=${event.code}
+                        reason=${event.reason}`);
+                } else {
+                    console.log('Connection died');
+                    console.log('Trying to reconnect...');
+                    setTimeout(function() {
+                        connect();
+                    }, 1000);
+                }
+            };
+
+            socket.onerror = function (error) {
+                console.log(`[error] ${error.message}`);
+            };
+        }
+        connect();
+
+        function boardClick(row, column){
+            let message = {
+                'action': 'board_click',
+                'row': row,
+                'column': column,
+            };
+            socket.send(JSON.stringify(message))
+        }
+
+        function clearBoard() {
+            $(`circle`).each((i, e) => {
+                e.remove();
+            });
+        }
+
+        function sendMessage() {
+            let message = {
+                'action': 'chat',
+                'message': $('#message').val()
+            };
+            socket.send(JSON.stringify(message))
+        }
+
+        function removeStone(id) {
+            $(`#${id}`).remove();
+        }
+
+        function putStone(id, cx, cy, player_id) {
+            let fill = player_id === 1 ? "black" : "white";
+
+            let xmlns = "http://www.w3.org/2000/svg";
+            let stone = document.createElementNS(xmlns,"circle");
+            stone.setAttributeNS(null, "cx", cx);
+            stone.setAttributeNS(null, "cy", cy);
+            stone.setAttributeNS(null, "r", "11.0");
+            stone.setAttributeNS(null, "fill", fill);
+
+            $('#board').append(stone);
+        }
+
+    </script>
+</head>
+<body>
+    <div style="display: flex; width: 100%; height: 100%;">
+        <div class="board-container">
+            <svg id="board" viewBox="0 0 660 397" width="100%" height="100%">
+                <polygon points="15.00,4.02 225.00,367.75 435.00,4.02 645.00,367.75" style="fill:#FFFFFF;stroke:black;stroke-width:1"></polygon>
+                <polygon points="15.00,4.02 435.00,4.02 225.00,367.75 645.00,367.75" style="fill:#303030;stroke:black;stroke-width:1"></polygon>
+                {% for row in rows %}
+                    {% set outer_loop = loop %}
+                    {% for cell in row %}
+                        <polygon id="{{ cell.id }}" points="{{ cell.points }}" fill="#FFCF79" class="cell" onclick="boardClick({{ outer_loop.index0 }}, {{ loop.index0 }})"></polygon>
+                    {% endfor %}
+                {% endfor %}
+            </svg>
+        </div>
+        <div>
+            <div>
+                <input type="button" value="clear board" onclick="clearBoard()">
+            </div>
+            <div id="chat" class="chat">
+            </div>
+            <div>
+                <textarea id="message" rows="3" cols="50"></textarea>
+                <input type="button" value="send" onclick="sendMessage()">
+            </div>
+        </div>
+    </div>
+</body>
+</html>
