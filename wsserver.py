@@ -182,10 +182,11 @@ async def receive(websocket, path):
 
 
 def run_websocket():
+    port = int(os.environ.get('PORT'))
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(
-        websockets.serve(receive, 'localhost', 8765))
+        websockets.serve(receive, 'localhost', port))
     asyncio.get_event_loop().run_forever()
 
 
@@ -202,7 +203,7 @@ def run(host, port):
     websocket_server.start()
 
     # return app
-    port = os.environ.get('PORT')
+    port = int(os.environ.get('PORT'))
     app.run(host, port)
 
 
