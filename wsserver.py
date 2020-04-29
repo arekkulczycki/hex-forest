@@ -207,7 +207,10 @@ def run(host):
 
 
 if __name__ == "__main__":
-    target = sys.argv[1]
+    try:
+        target = sys.argv[1]
+    except IndexError:
+        target = None
     if target == 'websocket':
         websocket_server = threading.Thread(target=run_websocket, daemon=True)
         websocket_server.start()
