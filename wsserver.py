@@ -1,7 +1,6 @@
 import asyncio
 import json
 import os
-import sys
 import threading
 from json import JSONDecodeError
 
@@ -38,9 +37,15 @@ def get_board_status(request):
         #     players = json.loads(players_file.read())
         # lock.release()
 
+        target = os.environ.get('TARGET')
+        if target == 'all':
+            websocket_address = 'ws://localhost:8001'
+        else:
+            websocket_address = 'wss://hex-forest-ws.herokuapp.com'
+
         template_context = {
             'rows': board.rows,
-            'port': 8001
+            'websocket_address': websocket_address
         }
         return request.Response(text=template.render(**template_context), mime_type='text/html')
 
@@ -129,13 +134,14 @@ async def delete_player(player_id):  # must be called from websocket thread
 
 
 async def handle_board_click(player, r, c):
+
     message_dict = {
         'type': 'move',
         'move': {'player_id': player.id, 'id': f'{r}-{c}', 'cx': Cell.stone_x(r, c), 'cy': Cell.stone_y(r)},
         'message': f'Player {player.id} has clicked cell {chr(c + 97)}{r + 1}'
     }
     tasks = [
-        save_move(player.id, r, c),
+        make_move(player.id, r, c),
         send_to_all(message_dict)
     ]
     await asyncio.wait(tasks)
@@ -150,11 +156,30 @@ async def handle_chat_message(player, message):
     await send_to_all(message_dict)
 
 
-async def save_move(player_id, r, c):
+async def handle_remove(player, id):
+    message_dict = {
+        'type': 'remove',
+        'id': id,
+        'message': f'Player {player.id} has removed stone {id}'
+    }
+    await send_to_all(message_dict)
+
+
+async def handle_clear(player):
+    message_dict = {
+        'type': 'clear',
+        'message': f'Player {player.id} has cleared the board'
+    }
+    await send_to_all(message_dict)
+
+
+async def make_move(player_id, r, c):
     if board.rows[r][c].state == 0:
         board.rows[r][c].state = player_id
+        return True
     elif board.rows[r][c].state == player_id:
         board.rows[r][c].state = 0
+        return False
 
     # lock.acquire()
     # with open('players.json', 'w') as players_file:
@@ -175,6 +200,10 @@ async def receive(websocket, path):
                         await handle_board_click(player, data.get('row'), data.get('column'))
                     elif action == 'chat':
                         await handle_chat_message(player, data.get('message'))
+                    elif action == 'remove':
+                        await handle_remove(player, data.get('id'))
+                    elif action == 'clear':
+                        await handle_clear(player)
                 except JSONDecodeError as e:
                     print(e, message)
     except:
@@ -184,7 +213,11 @@ async def receive(websocket, path):
 
 
 def run_websocket():
-    port = int(os.environ.get('PORT'))
+    target = os.environ.get('TARGET')
+    if target == 'all':
+        port = 8001
+    else:
+        port = int(os.environ.get('PORT'))
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     print(f'starting websocket server on port {port}...')

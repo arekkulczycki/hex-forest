@@ -5,7 +5,7 @@
     <script>
         let socket;
         function connect() {
-            socket = new WebSocket('wss://hex-forest-ws.herokuapp.com');
+            socket = new WebSocket('{{ websocket_address }}');
 
             socket.onopen = function (e) {
                 console.log('Connection established');
@@ -15,6 +15,7 @@
 
             socket.onmessage = function (event) {
                 let data = JSON.parse(event.data);
+                console.log(data);
                 switch (data.type) {
                     case 'info':
                         console.log(data.message);
@@ -25,6 +26,14 @@
                         let cx = data.move.cx;
                         let cy = data.move.cy;
                         putStone(id, cx, cy, player_id);
+                        break;
+                    case 'remove':
+                        console.log(data.message);
+                        removeStone(data.id);
+                        break;
+                    case 'clear':
+                        console.log(data.message);
+                        clearBoard();
                         break;
                     case 'chat':
                         console.log(data);
@@ -65,10 +74,29 @@
             socket.send(JSON.stringify(message))
         }
 
+        function sendClearBoard() {
+            let message = {
+                'action': 'clear'
+            };
+            socket.send(JSON.stringify(message));
+        }
+
         function clearBoard() {
             $(`circle`).each((i, e) => {
                 e.remove();
             });
+        }
+
+        function sendRemoveStone(id) {
+            let message = {
+                'action': 'remove',
+                'id': id
+            };
+            socket.send(JSON.stringify(message))
+        }
+
+        function removeStone(id) {
+            $(`#${id}`).remove();
         }
 
         function sendMessage() {
@@ -79,19 +107,17 @@
             socket.send(JSON.stringify(message))
         }
 
-        function removeStone(id) {
-            $(`#${id}`).remove();
-        }
-
         function putStone(id, cx, cy, player_id) {
             let fill = player_id === 1 ? "black" : "white";
 
             let xmlns = "http://www.w3.org/2000/svg";
             let stone = document.createElementNS(xmlns,"circle");
+            stone.setAttributeNS(null, "id", id);
             stone.setAttributeNS(null, "cx", cx);
             stone.setAttributeNS(null, "cy", cy);
             stone.setAttributeNS(null, "r", "11.0");
             stone.setAttributeNS(null, "fill", fill);
+            stone.setAttributeNS(null, "onclick", `sendRemoveStone("${id}")`);
 
             $('#board').append(stone);
         }
@@ -114,7 +140,7 @@
         </div>
         <div>
             <div>
-                <input type="button" value="clear board" onclick="clearBoard()">
+                <input type="button" value="clear board" onclick="sendClearBoard()">
             </div>
             <div id="chat" class="chat">
             </div>
