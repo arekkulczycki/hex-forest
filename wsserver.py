@@ -179,7 +179,7 @@ def run_websocket():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(
-        websockets.serve(receive, '0.0.0.0', 8765))
+        websockets.serve(receive, 'localhost', 8765))
     asyncio.get_event_loop().run_forever()
 
 
@@ -193,4 +193,4 @@ r.add_route('/async', asynchronous)
 websocket_server = threading.Thread(target=run_websocket, daemon=True)
 websocket_server.start()
 
-app.run('0.0.0.0', 8000)
+app.run('localhost', 443)
