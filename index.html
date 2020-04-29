@@ -36,7 +36,6 @@
                         clearBoard();
                         break;
                     case 'chat':
-                        console.log(data);
                         let color = data.played_id === 1 ? 'red' : 'blue';
                         let message = `<div style="color: ${color};">${data.message}</div>`;
                         $('#chat').append(message);
@@ -104,7 +103,8 @@
                 'action': 'chat',
                 'message': $('#message').val()
             };
-            socket.send(JSON.stringify(message))
+            socket.send(JSON.stringify(message));
+            $('#message').val('')
         }
 
         function putStone(id, cx, cy, player_id) {
