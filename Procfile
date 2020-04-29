@@ -1,2 +1,2 @@
 web: python wsserver.py
-ws: python wsserver.py websocket
+web: python wsserver.py websocket
