@@ -40,6 +40,7 @@ def get_board_status(request):
 
         template_context = {
             'rows': board.rows,
+            'port': 8001
         }
         return request.Response(text=template.render(**template_context), mime_type='text/html')
 
@@ -186,10 +187,14 @@ def run_websocket():
     port = int(os.environ.get('PORT'))
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
+    print(f'starting websocket server on port {port}...')
     loop.run_until_complete(
         websockets.serve(receive, '0.0.0.0', port))
     asyncio.get_event_loop().run_forever()
-    print(f'started websocket server on port {port}')
+
+
+def run_default():
+    run('0.0.0.0')
 
 
 def run(host):
@@ -207,16 +212,12 @@ def run(host):
 
 
 if __name__ == "__main__":
-    try:
-        target = sys.argv[1]
-    except IndexError:
-        target = None
+    target = os.environ.get('TARGET')
     if target == 'websocket':
-        websocket_server = threading.Thread(target=run_websocket, daemon=True)
-        websocket_server.start()
+        run_websocket()
     elif target == 'all':
-        run('localhost')
         websocket_server = threading.Thread(target=run_websocket, daemon=True)
         websocket_server.start()
+        run('0.0.0.0')
     else:
         run('0.0.0.0')
