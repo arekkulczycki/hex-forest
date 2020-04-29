@@ -208,4 +208,4 @@ def run(host):
 
 
 if __name__ == "__main__":
-    run('localhost')
+    run('0.0.0.0')
