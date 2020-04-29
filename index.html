@@ -5,7 +5,7 @@
     <script>
         let socket;
         function connect() {
-            socket = new WebSocket('ws://hex-forest-ws.herokuapp.com');
+            socket = new WebSocket('wss://hex-forest-ws.herokuapp.com');
 
             socket.onopen = function (e) {
                 console.log('Connection established');
