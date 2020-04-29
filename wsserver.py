@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 import threading
 from json import JSONDecodeError
@@ -22,8 +23,8 @@ def styles(request):
 
 
 def favicon(request):
-    with open('hex.png') as favicon:
-        return request.Response(text=favicon.read(), mime_type='image/png')
+    with open('hex.png', 'rb') as favicon:
+        return request.Response(body=favicon.read(), mime_type='image/png')
 
 
 def get_board_status(request):
