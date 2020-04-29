@@ -190,7 +190,7 @@ def run_websocket():
     asyncio.get_event_loop().run_forever()
 
 
-def run(host, port):
+def run(host):
     app = Application()
 
     r = app.router
@@ -199,8 +199,8 @@ def run(host, port):
     r.add_route('/async', asynchronous)
     r.add_route('/favicon.ico', favicon)
 
-    websocket_server = threading.Thread(target=run_websocket, daemon=True)
-    websocket_server.start()
+    # websocket_server = threading.Thread(target=run_websocket, daemon=True)
+    # websocket_server.start()
 
     # return app
     port = int(os.environ.get('PORT'))
@@ -208,4 +208,4 @@ def run(host, port):
 
 
 if __name__ == "__main__":
-    run('localhost', 8000)
+    run('localhost')
