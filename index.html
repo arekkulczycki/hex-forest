@@ -20,6 +20,19 @@
                     case 'info':
                         console.log(data.message);
                         break;
+                    case 'players':
+                        for (let i=0; i<data.players.length; i++) {
+                            assignPlayer(data.players[i].id, data.players[i].name);
+                        }
+                        break;
+                    case 'playerIn':
+                        console.log(data.message);
+                        assignPlayer(data.player_id, data.player_name);
+                        break;
+                    case 'playerOut':
+                        console.log(data.message);
+                        removePlayer(data.player_id);
+                        break;
                     case 'move':
                         let player_id = data.move.player_id;
                         let id = data.move.id;
@@ -36,9 +49,14 @@
                         clearBoard();
                         break;
                     case 'chat':
-                        let color = data.played_id === 1 ? 'red' : 'blue';
-                        let message = `<div style="color: ${color};">${data.message}</div>`;
-                        $('#chat').append(message);
+                        handleMessage(data.player_id, data.message);
+                        break;
+                    case 'saved':
+                        $('#game_id').val(data.game_id);
+                        break;
+                    case 'loaded':
+                        console.log(data.position);
+                        handleLoad(data.position);
                         break;
                     default:
                         console.log('Unsupported event', data)
@@ -64,11 +82,72 @@
         }
         connect();
 
-        function boardClick(row, column){
+        function handleMessage(player_id, message) {
+            let message_block = `<div class="message message_${player_id}">${message}</div>`;
+            let chat = $('#chat');
+            chat.append(message_block);
+            chat.animate({scrollTop: chat.height()}, 500);
+        }
+
+        function handleLoad(position) {
+
+        }
+
+        function assignPlayer(player_id, player_name) {
+            $(`#player_${player_id}_box_text`).text(player_name)
+        }
+
+        function removePlayer(player_id, player_name) {
+            $(`#player_${player_id}_box_text`).text('')
+        }
+
+        function boardClick(row, column) {
             let message = {
                 'action': 'board_click',
                 'row': row,
                 'column': column,
+                'alternate': $('#alternate').prop("checked")
+            };
+            socket.send(JSON.stringify(message))
+        }
+
+        function sendStore(winningPlayerId) {
+            alert('not implemented');
+            let message = {
+                'action': 'store',
+                'position': '', //TODO: obtain board position - ORDER DOESNT MATTER, store sorted alphabetically!
+                //TODO: ORDER MATTERS FOR BACKPROPAGATION!, store sorted, but update based on order
+                'result': winningPlayerId,
+            };
+            socket.send(JSON.stringify(message))
+        }
+
+        function saveGame() {
+            let message = {
+                'action': 'save',
+                'game_id': $('#game_id').val()
+            };
+            socket.send(JSON.stringify(message))
+        }
+
+        function loadGame() {
+            let message = {
+                'action': 'load',
+                'game_id': $('#game_id').val()
+            };
+            socket.send(JSON.stringify(message))
+        }
+
+        function sendUndo() {
+            let message = {
+                'action': 'undo'
+            };
+            socket.send(JSON.stringify(message))
+        }
+
+        function sendSwap() {
+            let message = {
+                'action': 'swap'
             };
             socket.send(JSON.stringify(message))
         }
@@ -139,14 +218,40 @@
             </svg>
         </div>
         <div>
-            <div>
+            <div style="display: flex; margin: 10px 0;">
+                <input type="button" value="undo" onclick="sendUndo()">
+                <input type="button" value="swap" onclick="sendSwap()">
                 <input type="button" value="clear board" onclick="sendClearBoard()">
+                <input type="button" value="save game" onclick="saveGame()" {% if mode == 'free' %} disabled="disabled" {% endif %}>
+            </div>
+            <div style="display: flex; margin: 10px 0;">
+                <input type="button" value="store as white win" onclick="sendStore(2)">
+                <input type="button" value="store as black win" onclick="sendStore(1)">
+            </div>
+            <div style="display: flex; margin: 10px 0;">
+                <input type="button" value="load game" onclick="loadGame()">
+                <input id="game_id" type="text" placeholder="game id">
+            </div>
+            <div style="display: flex; margin: 10px 0;">
+                <label for="alternate">alternate color</label><input id="alternate" type="checkbox" {% if mode != 'free' %} disabled="disabled" {% else %} checked="checked" {% endif %}>
+            </div>
+            <div style="display: flex; margin: 10px 0;">
+                <div id="player_1_box" class="player_box message_1">
+                    <img id="player_1_active" src="favicon.ico" alt="" style="width: 20px; float: left; padding-right: 10px;">
+                    <div id="player_1_box_text">
+                    </div>
+                </div>
+                <div id="player_2_box" class="player_box message_2">
+                    <img id="player_2_active" src="favicon.ico" alt="" style="width: 20px; float: left; padding-right: 10px;">
+                    <div id="player_2_box_text">
+                    </div>
+                </div>
             </div>
             <div id="chat" class="chat">
             </div>
             <div>
                 <textarea id="message" rows="3" cols="50"></textarea>
-                <input type="button" value="send" onclick="sendMessage()">
+                <input type="button" value="send" onclick="sendMessage()" {% if mode == 'free' %} disabled="disabled" {% endif %}>
             </div>
         </div>
     </div>

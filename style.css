@@ -8,6 +8,35 @@
     background: white;
 }
 
+.player_box {
+    min-height: 20px;
+    width: 50%;
+    padding: 10px 5px 10px 10px;
+    border: solid 1px black;
+    overflow: hidden;
+    font-size: 18px;
+    font-weight: bold;
+    background: #FFCF79;
+    font-family: monospace;
+}
+
+.message {
+    font-size: 18px;
+    font-family: monospace;
+}
+.message_1 {
+    color: black;
+    /*-webkit-text-fill-color: black;*/
+    /*-webkit-text-stroke-width: 0.3px;*/
+    /*-webkit-text-stroke-color: white;*/
+}
+.message_2 {
+    color: white;
+    /*-webkit-text-fill-color: white;*/
+    /*-webkit-text-stroke-width: 0.3px;*/
+    /*-webkit-text-stroke-color: black;*/
+}
+
 .board-container {
     width: 100%;
 }
@@ -15,10 +44,11 @@
 .chat {
     /*display: flex;*/
     height: 200px;
-    width: 460px;
+    min-width: 460px;
     border: solid 1px black;
     padding: 10px;
     overflow-y: scroll;
+    background: #FFCF79;
 }
 
 .marker-container {

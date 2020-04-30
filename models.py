@@ -1,4 +1,16 @@
+import json
+import os
+from decimal import Decimal
 from json import JSONEncoder
+from time import time
+
+import psycopg2
+import boto3
+# from sqlalchemy import create_engine, Column, Integer
+# from sqlalchemy.ext.declarative import declarative_base
+#
+# Base = declarative_base()
+from boto3.dynamodb.conditions import Key
 
 
 class Player:
@@ -11,6 +23,9 @@ class Player:
 
     def __str__(self):
         return str(self.id) if self else '...'
+
+    async def send(self, message):
+        await self.websocket.send(message)
 
 
 class DictEncoder(JSONEncoder):
@@ -85,3 +100,115 @@ class Cell:
             '{:.2f},{:.2f}'.format(f_1, f_2)
         ]
         return ' '.join(points)
+
+
+# class Position(Base):
+#     __tablename__ = 'positions'
+#
+#     id = Column(Integer, primary_key=True)
+
+
+class Position:
+
+    def __init__(self, id):
+        self.id = id
+
+
+class Postgres:
+
+    def __init__(self):
+        # self.engine = create_engine(os.environ['DATABASE_URL'])
+        self.connection = psycopg2.connect(os.environ['DATABASE_URL'], sslmode='require')
+        # self.create_tables()
+
+    @property
+    def cursor(self):
+        return self.connection.cursor()
+
+    def commit(self):
+        self.connection.commit()
+
+    def store_position(self):
+        cur = self.cursor
+        cur.execute('SQL')
+        self.commit()
+
+    def close(self):
+        self.cursor.close()
+        self.connection.close()
+
+    def create_tables(self):
+        self.cursor.execute("create table positions (id id primary key, ...)")
+
+
+class DynamoDB:
+
+    def __init__(self):
+        self.aws_access_key_id = os.environ.get('AWS_ACCESS_KEY_ID')
+        self.aws_secret_access_key = os.environ.get('AWS_SECRET_ACCESS_KEY')
+        # self.client = boto3.client('dynamodb', aws_access_key_id=self.aws_access_key_id,
+        #                            aws_secret_access_key=self.aws_secret_access_key)
+        self.client = boto3.resource('dynamodb', region_name='eu-central-1', aws_access_key_id=self.aws_access_key_id,
+                                     aws_secret_access_key=self.aws_secret_access_key)
+
+    def get_positions_for(self, first_two, all_moves=None, size=13):
+        table = self.client.Table('Positions')
+        condition = Key('size#first_two_moves').eq(f'{size}#{first_two}') & Key('all_moves').eq(all_moves) if all_moves \
+            else Key('first_two_moves').eq(first_two)
+        response = table.query(
+            KeyConditionExpression=condition
+        )
+        return response.get('Items')
+
+    def store_position(self, position, winner, size=13):
+        if len(position) <= 1:
+            print('position not long enough')
+            return
+        all_moves = ','.join(position)
+        first_two = f'{position[0]},{position[1]}'
+        table = self.client.Table('Positions')
+        item = {
+            'size#first_two_moves': f'{size}#{first_two}',
+            'all_moves': all_moves,
+            'state': winner
+        }
+        response = table.put_item(
+            Item=item
+        )
+        return response
+
+    def save_game(self, game_id, position):
+        table = self.client.Table('Games')
+        item = {
+            'game_id': game_id,
+            'timestamp': str(int(time())),
+            'position': position
+        }
+        response = table.put_item(
+            Item=item
+        )
+        return response
+
+    async def save_game_async(self, game_id, position):
+        return self.save_game(game_id, position)
+
+    def load_game(self, game_id):
+        table = self.client.Table('Games')
+        condition = Key('game_id').eq(game_id)
+        response = table.query(
+            KeyConditionExpression=condition
+        )
+        items = response.get('Items')
+        return items[0] if items else None
+
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, Decimal):
+            if abs(o) % 1 > 0:
+                return float(o)
+            else:
+                return int(o)
+        if isinstance(o, set):
+            return list(o)
+        return super().default(o)
