@@ -219,7 +219,7 @@
         </div>
         <div>
             <div style="display: flex; margin: 10px 0;">
-                <input type="button" value="undo" onclick="sendUndo()">
+                <input type="button" value="undo" onclick="sendUndo()" {% if mode == 'free' %} disabled="disabled" {% endif %}>
                 <input type="button" value="swap" onclick="sendSwap()">
                 <input type="button" value="clear board" onclick="sendClearBoard()">
                 <input type="button" value="save game" onclick="saveGame()" {% if mode == 'free' %} disabled="disabled" {% endif %}>

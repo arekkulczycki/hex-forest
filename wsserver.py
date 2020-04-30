@@ -345,7 +345,8 @@ async def receive(websocket, path):
                         if free:
                             await handle_remove(player, data.get('id'))
                     elif action == 'undo':
-                        await handle_undo(player)
+                        if not free:
+                            await handle_undo(player)
                     elif action == 'swap':
                         await handle_swap(player, free)
                     elif action == 'clear':
