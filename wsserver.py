@@ -13,6 +13,7 @@ from jinja2 import Template
 from models import Player, Board, Cell, DynamoDB, DecimalEncoder
 
 players = {1: None, 2: None}
+free_clients = {}
 clients = {}
 position = []
 turn = 1
@@ -97,8 +98,11 @@ async def send_to_all(message_dict, websocket):
         await asyncio.wait([client.send(message) for client in clients])
 
 
-async def register(websocket):
+async def register(websocket, free):
     print('player connecting...')
+    if free:
+        free_clients[websocket] = Player(3, websocket, 'free')
+        return
     player = assign_a_player(websocket)
     clients[websocket] = player
 
@@ -130,7 +134,12 @@ async def send_assigned_players(player):
     await send_to_all(message_dict, player)
 
 
-async def unregister(websocket):
+async def unregister(websocket, free):
+    if free:
+        player = free_clients[websocket]
+        del player
+        del free_clients[websocket]
+        return
     print('player disconnected')
     player_id = clients[websocket].id
     players[player_id].websocket = None
@@ -163,8 +172,7 @@ async def delete_player(player_id):  # must be called from websocket thread
 
 async def handle_board_click(player, r, c, alternate, free=False):
     if alternate:
-        global turn
-        moving_player = turn
+        moving_player = player.turn
     else:
         moving_player = player.id
 
@@ -174,10 +182,40 @@ async def handle_board_click(player, r, c, alternate, free=False):
         'message': f'Player {player.id} has clicked cell {chr(c + 97)}{r + 1}'
     }
     tasks = [
-        make_move(moving_player, r, c, free),
+        make_move(player, moving_player, r, c, free),
         send_to_all(message_dict, player.websocket)
     ]
     await asyncio.wait(tasks)
+
+
+async def make_move(player, moving_player_id, r, c, free=False):
+    if board.rows[r][c].state == 0:
+        board.rows[r][c].state = moving_player_id
+    elif board.rows[r][c].state == moving_player_id:
+        board.rows[r][c].state = 0
+
+    if free:
+        player.turn = 1 if player.turn == 2 else 2
+    else:
+        global turn
+        global position
+        position.append(f'{r}-{c}')
+        turn = 2 if len(position) % 2 == 1 else 1
+
+    # positions = db.get_positions_for('a1,b2')
+    # print(positions)
+    #
+    # client = clients[players[player_id].websocket]
+    # message_dict = {
+    #     'type': 'info',
+    #     'message': positions
+    # }
+    # await asyncio.wait([client.send(DecimalEncoder().encode(message_dict))])
+
+    # lock.acquire()
+    # with open('players.json', 'w') as players_file:
+    #     players_file.write(json.dumps(players, cls=DictEncoder))
+    # lock.release()
 
 
 async def handle_chat_message(player, message):
@@ -219,7 +257,10 @@ async def handle_clear(player):
     await send_to_all(message_dict, player.websocket)
 
 
-async def handle_swap(player):
+async def handle_swap(player, free=False):
+    if free:
+        player.turn = 1 if player.turn == 2 else 2
+        return
     player_1 = players.get(1)
     player_2 = players.get(2)
     player_1.id = 2
@@ -278,47 +319,17 @@ async def handle_load_game(player, game_id):
         except Exception as e:
             print(e)
         turn = 2 if turn == 1 else 1
+        player.turn = turn
     await asyncio.wait(tasks)
-
-
-async def make_move(moving_player_id, r, c, free=False):
-    if board.rows[r][c].state == 0:
-        board.rows[r][c].state = moving_player_id
-    elif board.rows[r][c].state == moving_player_id:
-        board.rows[r][c].state = 0
-
-    global turn
-    if free:
-        turn = 1 if turn == 2 else 2
-    else:
-        global position
-        position.append(f'{r}-{c}')
-        turn = 2 if len(position) % 2 == 1 else 1
-
-    # positions = db.get_positions_for('a1,b2')
-    # print(positions)
-    #
-    # client = clients[players[player_id].websocket]
-    # message_dict = {
-    #     'type': 'info',
-    #     'message': positions
-    # }
-    # await asyncio.wait([client.send(DecimalEncoder().encode(message_dict))])
-
-    # lock.acquire()
-    # with open('players.json', 'w') as players_file:
-    #     players_file.write(json.dumps(players, cls=DictEncoder))
-    # lock.release()
 
 
 async def receive(websocket, path):
     free = path == '/free'
-    if not free:
-        await register(websocket)
+    await register(websocket, free)
     try:
         async for message in websocket:
             if free:
-                player = Player(3, websocket, 'free')
+                player = free_clients.get(websocket)
             else:
                 player = clients.get(websocket)
             if player and player.id != 0:
@@ -336,7 +347,7 @@ async def receive(websocket, path):
                     elif action == 'undo':
                         await handle_undo(player)
                     elif action == 'swap':
-                        await handle_swap(player)
+                        await handle_swap(player, free)
                     elif action == 'clear':
                         await handle_clear(player)
                     elif action == 'save':
@@ -349,8 +360,7 @@ async def receive(websocket, path):
     except:
         pass
     finally:
-        if not free:
-            await unregister(websocket)
+        await unregister(websocket, free)
 
 
 def run_websocket():

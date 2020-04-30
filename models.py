@@ -20,6 +20,7 @@ class Player:
         self.websocket = websocket
         self.name = name
         self.present = present
+        self.turn = 1
 
     def __str__(self):
         return str(self.id) if self else '...'
