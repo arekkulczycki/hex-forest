@@ -174,6 +174,8 @@ async def handle_board_click(player, r, c, alternate, free=False):
     if alternate:
         moving_player = player.turn
     else:
+        if player.id != turn:
+            return
         moving_player = player.id
 
     message_dict = {
@@ -237,6 +239,9 @@ async def handle_remove(player, id):
 
 
 async def handle_undo(player):
+    global turn
+    turn = 1 if turn == 2 else 2
+
     id = position.pop()
     message_dict = {
         'type': 'remove',
@@ -247,6 +252,9 @@ async def handle_undo(player):
 
 
 async def handle_clear(player):
+    global turn
+    turn = 1
+
     global position
     position = []
 
