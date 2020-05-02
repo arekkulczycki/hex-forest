@@ -152,7 +152,23 @@ class DynamoDB:
         self.client = boto3.resource('dynamodb', region_name='eu-central-1', aws_access_key_id=self.aws_access_key_id,
                                      aws_secret_access_key=self.aws_secret_access_key)
 
-    def get_positions_for(self, first_two, all_moves=None, size=13):
+    def load_all_positions(self, first_two, position):
+        if len(position) <= 1:
+            print('position not long enough')
+            return []
+        position = sorted(position, key=self.position_sorting_key)
+
+        table = self.client.Table('Positions')
+        condition = Key('size#first_two_moves').eq(f'{size}#{first_two}')
+        response = table.query(
+            KeyConditionExpression=condition
+        )
+        items = response.get('Items')
+
+    def get_positions_for(self, first_two, position=None, size=13):
+        position = sorted(position, key=self.position_sorting_key)
+        all_moves = ','.join(position)
+
         table = self.client.Table('Positions')
         condition = Key('size#first_two_moves').eq(f'{size}#{first_two}') & Key('all_moves').eq(all_moves) if all_moves \
             else Key('first_two_moves').eq(first_two)
@@ -161,22 +177,35 @@ class DynamoDB:
         )
         return response.get('Items')
 
-    def store_position(self, position, winner, size=13):
-        if len(position) <= 1:
+    def store_position(self, opening, position, winner, size=13):
+        if len(position) < 20:
             print('position not long enough')
             return
+        position = sorted(position, key=self.position_sorting_key)
+
         all_moves = ','.join(position)
-        first_two = f'{position[0]},{position[1]}'
         table = self.client.Table('Positions')
         item = {
-            'size#first_two_moves': f'{size}#{first_two}',
+            'size#first_two_moves': f'{size}#{opening}',
             'all_moves': all_moves,
             'state': winner
         }
-        response = table.put_item(
-            Item=item
-        )
+        try:
+            response = table.put_item(
+                Item=item
+            )
+        except Exception as e:
+            print(e)
+            return
         return response
+
+    @staticmethod
+    def position_sorting_key(move):
+        split = move.split('-')
+        return int(split[0]) * 100 + int(split[1])
+
+    async def store_position_async(self, opening, position, winner, size=13):
+        return self.store_position(opening, position, winner, size)
 
     def save_game(self, game_id, position):
         table = self.client.Table('Games')

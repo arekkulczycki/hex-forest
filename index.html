@@ -58,6 +58,9 @@
                         console.log(data.position);
                         handleLoad(data.position);
                         break;
+                    case 'hints':
+                        loadHints(data);
+                        break;
                     default:
                         console.log('Unsupported event', data)
                 }
@@ -106,20 +109,35 @@
                 'action': 'board_click',
                 'row': row,
                 'column': column,
-                'alternate': $('#alternate').prop("checked")
+                'alternate': $('#alternate').prop('checked')
             };
             socket.send(JSON.stringify(message))
         }
 
         function sendStore(winningPlayerId) {
-            alert('not implemented');
+            $('#storeWhite').prop('disabled', 'disabled');
+            $('#storeBlack').prop('disabled', 'disabled');
+            setTimeout(() => {
+                console.log('works');
+                $('#storeWhite').prop('disabled', false);
+                $('#storeBlack').prop('disabled', false);
+            }, 3000);
+
             let message = {
                 'action': 'store',
-                'position': '', //TODO: obtain board position - ORDER DOESNT MATTER, store sorted alphabetically!
-                //TODO: ORDER MATTERS FOR BACKPROPAGATION!, store sorted, but update based on order
+                'opening': $('#opening-decoded').val(),
+                'position': getAllStones(),
                 'result': winningPlayerId,
             };
-            socket.send(JSON.stringify(message))
+            socket.send(JSON.stringify(message));
+        }
+
+        function getAllStones() {
+            let stones = [];
+            $('#board').find('circle').each((i, e) => {
+                stones.push(e.id);
+            });
+            return stones;
         }
 
         function saveGame() {
@@ -136,6 +154,10 @@
                 'game_id': $('#game_id').val()
             };
             socket.send(JSON.stringify(message))
+        }
+
+        function loadHints(data) {
+            console.log(data)
         }
 
         function sendUndo() {
@@ -160,7 +182,7 @@
         }
 
         function clearBoard() {
-            $(`circle`).each((i, e) => {
+            $('#board').find(`circle`).each((i, e) => {
                 e.remove();
             });
         }
@@ -173,32 +195,90 @@
             socket.send(JSON.stringify(message))
         }
 
-        function removeStone(id) {
-            $(`#${id}`).remove();
-        }
-
         function sendMessage() {
+            let messageBox = $('#message');
             let message = {
                 'action': 'chat',
-                'message': $('#message').val()
+                'message': messageBox.val()
             };
             socket.send(JSON.stringify(message));
-            $('#message').val('')
+
+            messageBox.val('')
+        }
+
+        function removeStone(id) {
+            $(`#${id}`).remove();
+
+            if ($('#hints').prop('checked'))
+                sendLoadHints();
         }
 
         function putStone(id, cx, cy, player_id) {
-            let fill = player_id === 1 ? "black" : "white";
+            let fill = player_id === 1 ? 'black' : 'white';
 
-            let xmlns = "http://www.w3.org/2000/svg";
-            let stone = document.createElementNS(xmlns,"circle");
-            stone.setAttributeNS(null, "id", id);
-            stone.setAttributeNS(null, "cx", cx);
-            stone.setAttributeNS(null, "cy", cy);
-            stone.setAttributeNS(null, "r", "11.0");
-            stone.setAttributeNS(null, "fill", fill);
-            stone.setAttributeNS(null, "onclick", `sendRemoveStone("${id}")`);
+            let xmlns = 'http://www.w3.org/2000/svg';
+            let stone = document.createElementNS(xmlns,'circle');
+            stone.setAttributeNS(null, 'id', id);
+            stone.setAttributeNS(null, 'cx', cx);
+            stone.setAttributeNS(null, 'cy', cy);
+            stone.setAttributeNS(null, 'r', '11.0');
+            stone.setAttributeNS(null, 'fill', fill);
+            stone.setAttributeNS(null, 'onclick', `sendRemoveStone('${id}')`);
 
             $('#board').append(stone);
+
+            setOpening();
+            if ($('#hints').prop('checked'))
+                sendLoadHints();
+        }
+
+        function sendLoadHints() {
+            let message = {
+                'action': 'hints',
+                'opening': $('#opening').val(),
+                'position': getAllStones()
+            };
+            socket.send(JSON.stringify(message))
+        }
+
+        function setOpening() {
+            let stones = getAllStones();
+            if (stones.length === 2) {
+                $('#storeWhite').prop('disabled', 'disabled');
+                $('#storeBlack').prop('disabled', 'disabled');
+
+                $('#opening').val(`${stones[0]},${stones[1]}`);
+
+                let first = coordsToName(stones[0]);
+                let second = coordsToName(stones[1]);
+                $('#opening-decoded').val(`${first},${second}`);
+            }
+            else if (stones.length === 1) {
+                $('#storeWhite').prop('disabled', 'disabled');
+                $('#storeBlack').prop('disabled', 'disabled');
+
+                $('#opening').val(stones[0]);
+
+                let first = coordsToName(stones[0]);
+                $('#opening-decoded').val(first);
+            }
+            else if (stones.length < 20) {
+                $('#storeWhite').prop('disabled', 'disabled');
+                $('#storeBlack').prop('disabled', 'disabled');
+            }
+            else {
+                $('#storeWhite').prop('disabled', false);
+                $('#storeBlack').prop('disabled', false);
+            }
+        }
+
+        function coordsToName(coords) {
+            console.log(coords);
+            let split = coords.split('-');
+            if (split.length !== 2)
+                return null;
+            let first = String.fromCharCode(65 + parseInt(split[0])).toLowerCase();
+            return `${first}${parseInt(split[1]) + 1}`
         }
 
     </script>
@@ -225,15 +305,21 @@
                 <input type="button" value="save game" onclick="saveGame()" {% if mode == 'free' %} disabled="disabled" {% endif %}>
             </div>
             <div style="display: flex; margin: 10px 0;">
-                <input type="button" value="store as white win" onclick="sendStore(2)">
-                <input type="button" value="store as black win" onclick="sendStore(1)">
-            </div>
-            <div style="display: flex; margin: 10px 0;">
                 <input type="button" value="load game" onclick="loadGame()">
                 <input id="game_id" type="text" placeholder="game id">
             </div>
             <div style="display: flex; margin: 10px 0;">
+                <input id="storeWhite" type="button" value="store as white win" onclick="sendStore(2)" disabled="disabled">
+                <input id="storeBlack" type="button" value="store as black win" onclick="sendStore(1)" disabled="disabled">
+            </div>
+            <div style="display: flex; margin: 10px 0;">
+                <label for="opening-decoded">opening:&nbsp;</label><input id="opening-decoded" type="text" disabled="disabled"><input id="opening" type="hidden">
+            </div>
+            <div style="display: flex; margin: 10px 0;">
                 <label for="alternate">alternate color</label><input id="alternate" type="checkbox" {% if mode != 'free' %} disabled="disabled" {% else %} checked="checked" {% endif %}>
+            </div>
+            <div style="display: flex; margin: 10px 0;">
+                <label for="hints">show hints</label><input id="hints" type="checkbox" disabled="disabled" {% if mode == 'free' %} checked="checked" {% endif %}>
             </div>
             <div style="display: flex; margin: 10px 0;">
                 <div id="player_1_box" class="player_box message_1">

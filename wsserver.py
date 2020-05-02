@@ -331,6 +331,14 @@ async def handle_load_game(player, game_id):
     await asyncio.wait(tasks)
 
 
+async def handle_store_position(player, opening, position, result):
+    await db.store_position_async(opening, position, result)
+
+
+async def handle_hints(player, opening, position):
+    all_positions = await db.get_positions_for(opening, position)
+
+
 async def receive(websocket, path):
     free = path == '/free'
     await register(websocket, free)
@@ -364,12 +372,19 @@ async def receive(websocket, path):
                             await handle_save_game(player, data.get('game_id'))
                     elif action == 'load':
                         await handle_load_game(player, data.get('game_id'))
+                    elif action == 'store':
+                        await handle_store_position(player, data.get('opening'), data.get('position'), data.get('result'))
+                    elif action == 'hints':
+                        await handle_hints(player, data.get('opening'), data.get('position'))
                 except JSONDecodeError as e:
                     print(e, message)
     except:
         pass
     finally:
-        await unregister(websocket, free)
+        try:
+            await unregister(websocket, free)
+        except Exception as e:
+            print(e)
 
 
 def run_websocket():
