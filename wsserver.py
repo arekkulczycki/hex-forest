@@ -244,7 +244,7 @@ async def make_move(player, moving_player_id, r, c, free=False):
         global turn
         global position
         position.append(f'{r}-{c}')
-        turn = BLACK_COLOR if len(position) % 2 == 1 else WHITE_COLOR
+        turn = WHITE_COLOR if len(position) % 2 == 1 else BLACK_COLOR
 
     # positions = db.get_positions_for('a1,b2')
     # print(positions)
