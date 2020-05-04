@@ -55,7 +55,7 @@
                         $('#game_id').val(data.game_id);
                         break;
                     case 'hint':
-                        showHint(data);
+                        showHint(data.move, data.winner.toString());
                         break;
                     case 'result':
                         showWinner(parseInt(data.winner));
@@ -93,21 +93,34 @@
 
         function toggleResult() {
             let result = $('#position-result');
-            if ($('#hints').prop('checked')) {
+            if ($('#hints').prop('checked'))
                 result.show();
-            }
             else
                 result.hide();
         }
 
-        function showWinner() {
+        function showWinner(winner) {
             toggleResult();
-            let winner_name = winner === 1 ? 'black' : 'white';
-            $('#winner').val(winner_name);
+            let winner_name = winner === 0 ? 'not solved' : (winner === 1 ? 'black' : 'white');
+            $('#winner').html(winner_name);
         }
 
-        function showHint(cell_id, result) {
-            $('#winner')
+        function showHint(move, winner) {
+            let cell_id = coordsToId(move);
+            let cell = $(`#${cell_id}`);
+
+            if (winner === '0')
+                cell.css('fill', 'url(#Mixed)');
+            else if (winner === '{{ black_color }}')
+                cell.css('fill', 'url(#Black)');
+            else if (winner === '{{ white_color }}')
+                cell.css('fill', 'url(#White)');
+        }
+
+        function clearHints() {
+            $('#board').find('.cell').each((i, e) => {
+                $(e).css('fill', '#FFCF79');
+            });
         }
 
         function assignPlayer(player_id, player_name) {
@@ -149,7 +162,8 @@
         function getAllStones() {
             let stones = [];
             $('#board').find('circle').each((i, e) => {
-                stones.push(e.id);
+                let color = $(e).attr('fill') === 'white' ? '{{ white_color }}' : '{{ black_color }}';
+                stones.push(`${e.id}-${color}`);
             });
             return stones;
         }
@@ -219,6 +233,8 @@
         function removeStone(id) {
             $(`#${id}`).remove();
 
+            clearHints();
+
             if ($('#hints').prop('checked'))
                 sendLoadHints();
         }
@@ -237,6 +253,8 @@
 
             $('#board').append(stone);
 
+            clearHints();
+
             setOpening();
             if ('{{ mode }}' === 'free' && $('#hints').prop('checked'))
                 sendLoadHints();
@@ -245,7 +263,7 @@
         function sendLoadHints() {
             let message = {
                 'action': 'hints',
-                'opening': $('#opening').val(),
+                'opening': $('#opening-decoded').val(),
                 'position': getAllStones()
             };
             socket.send(JSON.stringify(message))
@@ -253,30 +271,26 @@
 
         function setOpening() {
             let stones = getAllStones();
-            if (stones.length === 2) {
-                $('#swap').prop('disabled', 'disabled');
-
-                $('#storeWhite').prop('disabled', 'disabled');
-                $('#storeBlack').prop('disabled', 'disabled');
-
-                $('#opening').val(`${stones[0]},${stones[1]}`);
-
-                let first = coordsToName(stones[0]);
-                let second = coordsToName(stones[1]);
-                $('#opening-decoded').val(`${first},${second}`);
-            }
-            else if (stones.length === 1) {
+            //if (stones.length === 2) {
+            //    $('#swap').prop('disabled', 'disabled');
+            //
+            //    $('#storeWhite').prop('disabled', 'disabled');
+            //    $('#storeBlack').prop('disabled', 'disabled');
+            //
+            //    let first = coordsToId(stones[0]);
+            //    let second = coordsToId(stones[1]);
+            //    $('#opening-decoded').val(`${first},${second}`);
+            //}
+            if (stones.length === 1) {
                 $('#swap').prop('disabled', false);
 
                 $('#storeWhite').prop('disabled', 'disabled');
                 $('#storeBlack').prop('disabled', 'disabled');
 
-                $('#opening').val(stones[0]);
-
-                let first = coordsToName(stones[0]);
+                let first = coordsToId(stones[0]);
                 $('#opening-decoded').val(first);
             }
-            else if (stones.length < 20) {
+            else if (stones.length < {{ store_minimum }}) {
                 $('#swap').prop('disabled', 'disabled');
 
                 $('#storeWhite').prop('disabled', 'disabled');
@@ -288,17 +302,14 @@
                 $('#storeWhite').prop('disabled', false);
                 $('#storeBlack').prop('disabled', false);
             }
-            $('#storeWhite').prop('disabled', false);
-            $('#storeBlack').prop('disabled', false);
         }
 
-        function coordsToName(coords) {
-            console.log(coords);
+        function coordsToId(coords) {
             let split = coords.split('-');
-            if (split.length !== 2)
+            if (split.length < 2)
                 return null;
-            let first = String.fromCharCode(65 + parseInt(split[0])).toLowerCase();
-            return `${first}${parseInt(split[1]) + 1}`
+            let first = String.fromCharCode(65 + parseInt(split[1])).toLowerCase();
+            return `${first}${parseInt(split[0]) + 1}`
         }
 
     </script>
@@ -307,6 +318,20 @@
     <div class="arena">
         <div class="board-container">
             <svg id="board" viewBox="0 0 660 397">
+                <defs>
+                    <linearGradient id="Black" x1="1" x2="0" y1="0" y2="1">
+                        <stop offset="25%" stop-color="#FFCF79" />
+                        <stop offset="100%" stop-color="black" />
+                    </linearGradient>
+                    <linearGradient id="White" x1="1" x2="0" y1="0" y2="1">
+                        <stop offset="25%" stop-color="#FFCF79" />
+                        <stop offset="100%" stop-color="white" />
+                    </linearGradient>
+                    <linearGradient id="Mixed" x1="1" x2="0" y1="0" y2="1">
+                        <stop offset="25%" stop-color="white" />
+                        <stop offset="90%" stop-color="black" />
+                    </linearGradient>
+                </defs>
                 <polygon points="15.00,4.02 225.00,367.75 435.00,4.02 645.00,367.75" style="fill:#FFFFFF;stroke:black;stroke-width:1"></polygon>
                 <polygon points="15.00,4.02 435.00,4.02 225.00,367.75 645.00,367.75" style="fill:#303030;stroke:black;stroke-width:1"></polygon>
                 {% for row in rows %}
@@ -333,16 +358,16 @@
                 <input id="storeBlack" type="button" value="store as black win" onclick="sendStore(1)" disabled="disabled">
             </div>
             <div class="menu-paragraph">
-                <label for="opening-decoded">opening:&nbsp;</label><input id="opening-decoded" type="text" disabled="disabled"><input id="opening" type="hidden">
+                <label for="opening-decoded">opening:&nbsp;</label><input id="opening-decoded" type="text" disabled="disabled">
             </div>
             <div class="menu-paragraph">
                 <label for="alternate">alternate color</label><input id="alternate" type="checkbox" {% if mode != 'free' %} disabled="disabled" {% else %} checked="checked" {% endif %}>
             </div>
             <div class="menu-paragraph">
                 <label for="hints">show hints</label><input id="hints" type="checkbox" {% if mode == 'free' %} checked="checked" {% else %} checked="checked" {% endif %} onchange="toggleResult()">
-            </div>
-            <div id="position-result" class="menu-paragraph" {% if mode != 'free' %} style="display: none;" {% endif %}>
-                position result:&nbsp;<span id="winner"></span>
+                <div id="position-result" style="margin-left: 30px;" {% if mode != 'free' %} style="display: none;" {% endif %}>
+                    winner:&nbsp;<span id="winner">not solved</span>
+                </div>
             </div>
             <div class="menu-paragraph">
                 <div id="player_1_box" class="player_box message_1">

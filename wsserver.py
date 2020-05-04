@@ -6,6 +6,7 @@ import string
 import threading
 import traceback
 from json import JSONDecodeError
+from time import time
 
 import websockets
 from japronto import Application
@@ -17,12 +18,16 @@ players = {1: None, 2: None}
 free_clients = {}
 clients = {}
 position = []
-turn = 1
 free_mode = False
 
 lock = threading.Lock()
 board = Board()
 db = None
+STORE_MINIMUM = 10
+BLACK_COLOR = 1
+WHITE_COLOR = 2
+
+turn = BLACK_COLOR
 
 
 def styles(request):
@@ -55,7 +60,10 @@ def show_board(request, mode=''):
         template_context = {
             'rows': board.rows,
             'websocket_address': websocket_address,
-            'mode': mode
+            'mode': mode,
+            'store_minimum': STORE_MINIMUM,
+            'black_color': BLACK_COLOR,
+            'white_color': WHITE_COLOR
         }
         return request.Response(text=template.render(**template_context), mime_type='text/html')
 
@@ -92,7 +100,7 @@ def assign_a_player(websocket):
 
 
 async def send_to_board(message_dict, websocket=None):
-    message = json.dumps(message_dict)
+    message = DecimalEncoder().encode(message_dict)
     if websocket and websocket not in clients:
         await websocket.send(message)
     elif clients:
@@ -100,7 +108,7 @@ async def send_to_board(message_dict, websocket=None):
 
 
 async def send_to_self(message_dict, websocket):
-    message = json.dumps(message_dict)
+    message = DecimalEncoder().encode(message_dict)
     await websocket.send(message)
 
 
@@ -141,7 +149,7 @@ async def register(websocket, free):
         }
         tasks.append(send_to_self(message_dict, player.websocket))
 
-        turn = 2 if turn == 1 else 1
+        turn = WHITE_COLOR if turn == BLACK_COLOR else BLACK_COLOR
 
     await asyncio.wait(tasks)
 
@@ -221,7 +229,7 @@ async def handle_board_click(player, r, c, alternate, hints, free=False):
         first = f'{chr(int(first_coords[0]) + 97)}{int(first_coords[1]) + 1}'
         second_coords = position[1].split('-')
         second = f'{chr(int(second_coords[0]) + 97)}{int(second_coords[1]) + 1}'
-        await handle_hints(player, f'{first},{second}',position)
+        await handle_hints(player, f'{first},{second}', position)
 
 
 async def make_move(player, moving_player_id, r, c, free=False):
@@ -231,12 +239,12 @@ async def make_move(player, moving_player_id, r, c, free=False):
         board.rows[r][c].state = 0
 
     if free:
-        player.turn = 1 if player.turn == 2 else 2
+        player.turn = WHITE_COLOR if player.turn == BLACK_COLOR else BLACK_COLOR
     else:
         global turn
         global position
         position.append(f'{r}-{c}')
-        turn = 2 if len(position) % 2 == 1 else 1
+        turn = BLACK_COLOR if len(position) % 2 == 1 else WHITE_COLOR
 
     # positions = db.get_positions_for('a1,b2')
     # print(positions)
@@ -274,7 +282,7 @@ async def handle_remove(player, id):
 
 async def handle_undo(player):
     global turn
-    turn = 1 if turn == 2 else 2
+    turn = BLACK_COLOR if turn == WHITE_COLOR else WHITE_COLOR
 
     id = position.pop()
     message_dict = {
@@ -287,7 +295,7 @@ async def handle_undo(player):
 
 async def handle_clear(player):
     global turn
-    turn = 1
+    turn = BLACK_COLOR
 
     global position
     position = []
@@ -301,7 +309,7 @@ async def handle_clear(player):
 
 async def handle_swap(player, free=False):
     if free:
-        player.turn = 1 if player.turn == 2 else 2
+        player.turn = BLACK_COLOR if player.turn == WHITE_COLOR else WHITE_COLOR
         return
     elif len(position) != 1:
         return
@@ -364,12 +372,15 @@ async def handle_load_game(player, game_id):
             break
         except Exception as e:
             traceback.print_exc()
-        turn = 2 if turn == 1 else 1
+        turn = WHITE_COLOR if turn == BLACK_COLOR else BLACK_COLOR
         player.turn = turn
     await asyncio.wait(tasks)
 
 
 async def handle_store_position(player, opening, position, result):
+    if len(position) < STORE_MINIMUM:
+        print('position not long enough!')
+        return
     await db.store_position_async(opening, position, result)
 
 
@@ -378,14 +389,11 @@ async def handle_hints(player, opening, position):
 
     if len(position) < 2:
         return
-
     print('handling hints...')
-    print(opening)
-    print(position)
 
     tasks = [
         db.get_position_result_async(opening, position),
-        db.get_positions_for_async(opening, position)
+        db.get_positions_for_async(opening)  # not passing any position on purpose
     ]
     finished_tasks = (await asyncio.wait(tasks))[0]
 
@@ -406,14 +414,25 @@ async def handle_hints(player, opening, position):
 
     options = {}
     positions_n = 0
+    moves_n = len(position)
+    turn = WHITE_COLOR if moves_n % 2 == 1 else BLACK_COLOR
+
+    t_1 = time()
     for pos in all_positions:
-        positions_n += 1
-        moves = pos.get('all_moves')
-        winner = pos.get('winner')
-        diff = pos.split(f'{moves},')[1]
-        diff_moves = diff.split(',')
-        for diff_move in diff_moves:
-            options[diff_move] = position_outcome(options.get(diff_move), winner)
+        all_moves = pos.get('all_moves').split(',')
+        is_subset, diff_moves = rest_if_is_subset(position, moves_n, all_moves)
+        # is_subset, diff_moves = rest_if_is_subset_fast(position, all_moves)
+        if is_subset:
+            positions_n += 1
+            winner = pos.get('winner')
+            for diff_move in diff_moves:
+                move_split = diff_move.split('-')
+                cell_id = f'{move_split[0]}-{move_split[1]}'
+                color = int(move_split[2])
+                if color == turn:
+                    options[cell_id] = position_outcome(options.get(cell_id), int(winner))
+    t_2 = time()
+    print(f'search took {t_2 - t_1}')
 
     tasks = []
     for move, outcomes in options.items():
@@ -430,6 +449,23 @@ async def handle_hints(player, opening, position):
 
     if tasks:
         await asyncio.wait(tasks)
+
+
+# def rest_if_is_subset_fast(moves, all_moves):
+#     pass
+
+
+# slow implementation (not using position order)
+# TODO: # fast implementation (using position order)
+def rest_if_is_subset(moves, moves_n, all_moves):
+    rest = []
+    rest_n = 0
+    for move in all_moves:
+        if move not in moves:
+            rest.append(move)
+            rest_n += 1
+    is_subset = moves_n + rest_n == len(all_moves)
+    return is_subset, rest
 
 
 def position_outcome(outcomes, new_outcome):

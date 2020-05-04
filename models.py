@@ -154,47 +154,46 @@ class DynamoDB:
         self.client = boto3.resource('dynamodb', region_name='eu-central-1', aws_access_key_id=self.aws_access_key_id,
                                      aws_secret_access_key=self.aws_secret_access_key)
 
-    def get_position_result(self, first_two, position, size=13):
-        print(position)
+    def get_position_result(self, opening, position, size=13):
         position = sorted(position, key=self.position_sorting_key)
         all_moves = ','.join(position)
 
         table = self.client.Table('Positions')
-        condition = Key('size#first_two_moves').eq(f'{size}#{first_two}') & Key('all_moves').eq(all_moves)
+        condition = Key('size#opening').eq(f'{size}#{opening}') & Key('all_moves').eq(all_moves)
         response = table.query(
             KeyConditionExpression=condition
         )
         items = response.get('Items')
         return int(items[0].get('winner')) if items else 0
 
-    async def get_position_result_async(self, first_two, position, size=13):
-        return self.get_position_result(first_two, position, size)
+    async def get_position_result_async(self, opening, position, size=13):
+        return self.get_position_result(opening, position, size)
 
-    def get_positions_for(self, first_two, position=None, size=13):
-        position = sorted(position, key=self.position_sorting_key)
-        all_moves = ','.join(position)
+    def get_positions_for(self, opening, position=None, size=13):
+        if position is None:
+            condition = Key('size#opening').eq(f'{size}#{opening}')
+        else:
+            position = sorted(position, key=self.position_sorting_key)
+            all_moves = ','.join(position)
+            condition = Key('size#opening').eq(f'{size}#{opening}') & Key('all_moves').begins_with(all_moves)
 
         table = self.client.Table('Positions')
-        condition = Key('size#first_two_moves').eq(f'{size}#{first_two}') & Key('all_moves').begins_with(all_moves) if all_moves \
-            else Key('first_two_moves').eq(first_two)
         response = table.query(
-            KeyConditionExpression=condition
+            KeyConditionExpression=condition,
+            ProjectionExpression='all_moves, winner'
         )
         return response.get('Items')
 
-    async def get_positions_for_async(self, first_two, position=None, size=13):
-        return self.get_positions_for(first_two, position, size)
+    async def get_positions_for_async(self, opening, position=None, size=13):
+        return self.get_positions_for(opening, position, size)
 
     def store_position(self, opening, position, winner, size=13):
-        if len(position) < 20:
-            print('position not long enough')
-            return
         position = sorted(position, key=self.position_sorting_key)
 
         all_moves = ','.join(position)
         table = self.client.Table('Positions')
         item = {
-            'size#first_two_moves': f'{size}#{opening}',
+            'size#opening': f'{size}#{opening}',
             'all_moves': all_moves,
             'winner': winner
         }
