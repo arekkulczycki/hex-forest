@@ -4,6 +4,7 @@ import os
 import random
 import string
 import threading
+import traceback
 from json import JSONDecodeError
 
 import websockets
@@ -90,12 +91,17 @@ def assign_a_player(websocket):
     return Player(0, websocket, 'spectator', 0)
 
 
-async def send_to_all(message_dict, websocket):
+async def send_to_board(message_dict, websocket=None):
     message = json.dumps(message_dict)
-    if not clients.get(websocket):
+    if websocket and websocket not in clients:
         await websocket.send(message)
     elif clients:
         await asyncio.wait([client.send(message) for client in clients])
+
+
+async def send_to_self(message_dict, websocket):
+    message = json.dumps(message_dict)
+    await websocket.send(message)
 
 
 async def register(websocket, free):
@@ -121,7 +127,21 @@ async def register(websocket, free):
             'player_name': player.name,
             'message': 'Player {} has joined!'.format(player.id),
         }
-        tasks.append(send_to_all(message_dict, websocket))
+        tasks.append(send_to_board(message_dict, websocket))
+
+    turn = 1
+    for move in position:
+        split = move.split('-')
+        r = int(split[0])
+        c = int(split[1])
+
+        message_dict = {
+            'type': 'move',
+            'move': {'player_id': turn, 'id': move, 'cx': Cell.stone_x(r, c), 'cy': Cell.stone_y(r)},
+        }
+        tasks.append(send_to_self(message_dict, player.websocket))
+
+        turn = 2 if turn == 1 else 1
 
     await asyncio.wait(tasks)
 
@@ -131,7 +151,7 @@ async def send_assigned_players(player):
         'type': 'players',
         'players': [{'id': player_id, 'name': player.name} for player_id, player in players.items() if player is not None]
     }
-    await send_to_all(message_dict, player)
+    await send_to_board(message_dict, player)
 
 
 async def unregister(websocket, free):
@@ -141,7 +161,10 @@ async def unregister(websocket, free):
         del free_clients[websocket]
         return
     print('player disconnected')
+
     player_id = clients[websocket].id
+    del clients[websocket]
+
     players[player_id].websocket = None
     players[player_id].present = False
 
@@ -157,8 +180,7 @@ async def unregister(websocket, free):
         'player_id': player_id,
         'message': 'Player {} has leaved!'.format(player_id),
     }
-    await send_to_all(message_dict, websocket)
-    del clients[websocket]
+    await send_to_board(message_dict)
 
 
 async def delete_player(player_id):  # must be called from websocket thread
@@ -170,24 +192,36 @@ async def delete_player(player_id):  # must be called from websocket thread
     # lock.release()
 
 
-async def handle_board_click(player, r, c, alternate, free=False):
-    if alternate:
-        moving_player = player.turn
-    else:
-        if player.id != turn:
-            return
-        moving_player = player.id
+async def handle_board_click(player, r, c, alternate, hints, free=False):
+    try:
+        if alternate:
+            moving_player = player.turn
+        else:
+            if player.id != turn:
+                return
+            moving_player = player.id
 
-    message_dict = {
-        'type': 'move',
-        'move': {'player_id': moving_player, 'id': f'{r}-{c}', 'cx': Cell.stone_x(r, c), 'cy': Cell.stone_y(r)},
-        'message': f'Player {player.id} has clicked cell {chr(c + 97)}{r + 1}'
-    }
-    tasks = [
-        make_move(player, moving_player, r, c, free),
-        send_to_all(message_dict, player.websocket)
-    ]
+        message_dict = {
+            'type': 'move',
+            'move': {'player_id': moving_player, 'id': f'{r}-{c}', 'cx': Cell.stone_x(r, c), 'cy': Cell.stone_y(r)},
+            'message': f'Player {player.id} has clicked cell {chr(c + 97)}{r + 1}'
+        }
+        tasks = [
+            make_move(player, moving_player, r, c, free),
+            send_to_board(message_dict, player.websocket)
+        ]
+    except Exception as e:
+        traceback.print_exc()
+
     await asyncio.wait(tasks)
+
+    global position
+    if not free and hints and len(position) >= 2:
+        first_coords = position[0].split('-')
+        first = f'{chr(int(first_coords[0]) + 97)}{int(first_coords[1]) + 1}'
+        second_coords = position[1].split('-')
+        second = f'{chr(int(second_coords[0]) + 97)}{int(second_coords[1]) + 1}'
+        await handle_hints(player, f'{first},{second}',position)
 
 
 async def make_move(player, moving_player_id, r, c, free=False):
@@ -226,7 +260,7 @@ async def handle_chat_message(player, message):
         'player_id': player.id,
         'message': message
     }
-    await send_to_all(message_dict, player.websocket)
+    await send_to_board(message_dict, player.websocket)
 
 
 async def handle_remove(player, id):
@@ -235,7 +269,7 @@ async def handle_remove(player, id):
         'id': id,
         'message': f'Player {player.id} has removed stone {id}'
     }
-    await send_to_all(message_dict, player.websocket)
+    await send_to_board(message_dict, player.websocket)
 
 
 async def handle_undo(player):
@@ -248,7 +282,7 @@ async def handle_undo(player):
         'id': id,
         'message': f'Player {player.id} has clicked undo'
     }
-    await send_to_all(message_dict, player.websocket)
+    await send_to_board(message_dict, player.websocket)
 
 
 async def handle_clear(player):
@@ -262,15 +296,19 @@ async def handle_clear(player):
         'type': 'clear',
         'message': f'Player {player.id} has cleared the board'
     }
-    await send_to_all(message_dict, player.websocket)
+    await send_to_board(message_dict, player.websocket)
 
 
 async def handle_swap(player, free=False):
     if free:
         player.turn = 1 if player.turn == 2 else 2
         return
+    elif len(position) != 1:
+        return
     player_1 = players.get(1)
     player_2 = players.get(2)
+    if not player_1 or not player_2:
+        return
     player_1.id = 2
     player_2.id = 1
     players[1] = player_2
@@ -289,7 +327,7 @@ async def handle_save_game(player, game_id):
         'message': f'Player {player.id} has saved the game'
     }
     tasks = [
-        send_to_all(message_dict, player.websocket),
+        send_to_board(message_dict, player.websocket),
         db.save_game_async(game_id, position)
     ]
     await asyncio.wait(tasks)
@@ -319,13 +357,13 @@ async def handle_load_game(player, game_id):
                 'type': 'move',
                 'move': {'player_id': turn, 'id': move, 'cx': Cell.stone_x(r, c), 'cy': Cell.stone_y(r)},
             }
-            tasks.append(send_to_all(message_dict, player.websocket))
+            tasks.append(send_to_board(message_dict, player.websocket))
         except IndexError as e:
             print(f'Something wrong with game {game_id} position. Move: {move}')
             print(e)
             break
         except Exception as e:
-            print(e)
+            traceback.print_exc()
         turn = 2 if turn == 1 else 1
         player.turn = turn
     await asyncio.wait(tasks)
@@ -336,7 +374,78 @@ async def handle_store_position(player, opening, position, result):
 
 
 async def handle_hints(player, opening, position):
-    all_positions = await db.get_positions_for(opening, position)
+    shown_percent = 0.1
+
+    if len(position) < 2:
+        return
+
+    print('handling hints...')
+    print(opening)
+    print(position)
+
+    tasks = [
+        db.get_position_result_async(opening, position),
+        db.get_positions_for_async(opening, position)
+    ]
+    finished_tasks = (await asyncio.wait(tasks))[0]
+
+    # all_positions = await db.get_positions_for(opening, position)
+
+    for task in finished_tasks:
+        result = task.result()
+        if isinstance(result, list):
+            all_positions = result
+        else:
+            winner = result
+
+    message_dict = {
+        'type': 'result',
+        'winner': winner  # TODO: change to relative to the player who's asking???
+    }
+    await send_to_self(message_dict, player.websocket)
+
+    options = {}
+    positions_n = 0
+    for pos in all_positions:
+        positions_n += 1
+        moves = pos.get('all_moves')
+        winner = pos.get('winner')
+        diff = pos.split(f'{moves},')[1]
+        diff_moves = diff.split(',')
+        for diff_move in diff_moves:
+            options[diff_move] = position_outcome(options.get(diff_move), winner)
+
+    tasks = []
+    for move, outcomes in options.items():
+        results = outcomes.get('results')
+        winner = outcomes.get('winner')
+        if len(results) / positions_n < shown_percent:
+            continue
+        message_dict = {
+            'type': 'hint',
+            'move': move,
+            'winner': winner
+        }
+        tasks.append(send_to_board(message_dict, player.websocket))
+
+    if tasks:
+        await asyncio.wait(tasks)
+
+
+def position_outcome(outcomes, new_outcome):
+    if outcomes is None:
+        return {'results': [new_outcome], 'winner': new_outcome}
+    outcomes['results'].append(new_outcome)
+    results = outcomes['results']
+    if len(results) >= 5:
+        if len(set(results)) == 1:
+            outcomes['winner'] = new_outcome
+        else:
+            outcomes['winner'] = 0
+    else:
+        outcomes['winner'] = None
+
+    return outcomes
 
 
 async def receive(websocket, path):
@@ -353,7 +462,8 @@ async def receive(websocket, path):
                     data = json.loads(message)
                     action = data.get('action')
                     if action == 'board_click':
-                        await handle_board_click(player, data.get('row'), data.get('column'), data.get('alternate'), free)
+                        await handle_board_click(player, data.get('row'), data.get('column'), data.get('alternate'),
+                                                 data.get('hints'), free)
                     elif action == 'chat':
                         if not free:
                             await handle_chat_message(player, data.get('message'))
@@ -378,13 +488,13 @@ async def receive(websocket, path):
                         await handle_hints(player, data.get('opening'), data.get('position'))
                 except JSONDecodeError as e:
                     print(e, message)
-    except:
-        pass
+    except Exception as e:
+        traceback.print_exc()
     finally:
         try:
             await unregister(websocket, free)
         except Exception as e:
-            print(e)
+            traceback.print_exc()
 
 
 def run_websocket():

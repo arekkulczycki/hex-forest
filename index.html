@@ -54,12 +54,11 @@
                     case 'saved':
                         $('#game_id').val(data.game_id);
                         break;
-                    case 'loaded':
-                        console.log(data.position);
-                        handleLoad(data.position);
+                    case 'hint':
+                        showHint(data);
                         break;
-                    case 'hints':
-                        loadHints(data);
+                    case 'result':
+                        showWinner(parseInt(data.winner));
                         break;
                     default:
                         console.log('Unsupported event', data)
@@ -92,8 +91,23 @@
             chat.animate({scrollTop: chat.height()}, 500);
         }
 
-        function handleLoad(position) {
+        function toggleResult() {
+            let result = $('#position-result');
+            if ($('#hints').prop('checked')) {
+                result.show();
+            }
+            else
+                result.hide();
+        }
 
+        function showWinner() {
+            toggleResult();
+            let winner_name = winner === 1 ? 'black' : 'white';
+            $('#winner').val(winner_name);
+        }
+
+        function showHint(cell_id, result) {
+            $('#winner')
         }
 
         function assignPlayer(player_id, player_name) {
@@ -109,7 +123,8 @@
                 'action': 'board_click',
                 'row': row,
                 'column': column,
-                'alternate': $('#alternate').prop('checked')
+                'alternate': $('#alternate').prop('checked'),
+                'hints': $('#hints').prop('checked')
             };
             socket.send(JSON.stringify(message))
         }
@@ -118,7 +133,6 @@
             $('#storeWhite').prop('disabled', 'disabled');
             $('#storeBlack').prop('disabled', 'disabled');
             setTimeout(() => {
-                console.log('works');
                 $('#storeWhite').prop('disabled', false);
                 $('#storeBlack').prop('disabled', false);
             }, 3000);
@@ -154,10 +168,6 @@
                 'game_id': $('#game_id').val()
             };
             socket.send(JSON.stringify(message))
-        }
-
-        function loadHints(data) {
-            console.log(data)
         }
 
         function sendUndo() {
@@ -228,7 +238,7 @@
             $('#board').append(stone);
 
             setOpening();
-            if ($('#hints').prop('checked'))
+            if ('{{ mode }}' === 'free' && $('#hints').prop('checked'))
                 sendLoadHints();
         }
 
@@ -244,6 +254,8 @@
         function setOpening() {
             let stones = getAllStones();
             if (stones.length === 2) {
+                $('#swap').prop('disabled', 'disabled');
+
                 $('#storeWhite').prop('disabled', 'disabled');
                 $('#storeBlack').prop('disabled', 'disabled');
 
@@ -254,6 +266,8 @@
                 $('#opening-decoded').val(`${first},${second}`);
             }
             else if (stones.length === 1) {
+                $('#swap').prop('disabled', false);
+
                 $('#storeWhite').prop('disabled', 'disabled');
                 $('#storeBlack').prop('disabled', 'disabled');
 
@@ -263,13 +277,19 @@
                 $('#opening-decoded').val(first);
             }
             else if (stones.length < 20) {
+                $('#swap').prop('disabled', 'disabled');
+
                 $('#storeWhite').prop('disabled', 'disabled');
                 $('#storeBlack').prop('disabled', 'disabled');
             }
             else {
+                $('#swap').prop('disabled', 'disabled');
+
                 $('#storeWhite').prop('disabled', false);
                 $('#storeBlack').prop('disabled', false);
             }
+            $('#storeWhite').prop('disabled', false);
+            $('#storeBlack').prop('disabled', false);
         }
 
         function coordsToName(coords) {
@@ -292,36 +312,39 @@
                 {% for row in rows %}
                     {% set outer_loop = loop %}
                     {% for cell in row %}
-                        <polygon id="{{ cell.id }}" points="{{ cell.points }}" fill="#FFCF79" class="cell" onclick="boardClick({{ outer_loop.index0 }}, {{ loop.index0 }})"></polygon>
+                        <polygon id="{{ cell.id }}" points="{{ cell.points }}" class="cell" onclick="boardClick({{ outer_loop.index0 }}, {{ loop.index0 }})"></polygon>
                     {% endfor %}
                 {% endfor %}
             </svg>
         </div>
         <div class="menu-container">
-            <div style="display: flex; margin: 10px 0;">
+            <div class="menu-paragraph">
                 <input type="button" value="undo" onclick="sendUndo()" {% if mode == 'free' %} disabled="disabled" {% endif %}>
-                <input type="button" value="swap" onclick="sendSwap()">
+                <input id="swap" type="button" value="swap" onclick="sendSwap()">
                 <input type="button" value="clear board" onclick="sendClearBoard()">
                 <input type="button" value="save game" onclick="saveGame()" {% if mode == 'free' %} disabled="disabled" {% endif %}>
             </div>
-            <div style="display: flex; margin: 10px 0;">
+            <div class="menu-paragraph">
                 <input type="button" value="load game" onclick="loadGame()">
                 <input id="game_id" type="text" placeholder="game id">
             </div>
-            <div style="display: flex; margin: 10px 0;">
+            <div class="menu-paragraph">
                 <input id="storeWhite" type="button" value="store as white win" onclick="sendStore(2)" disabled="disabled">
                 <input id="storeBlack" type="button" value="store as black win" onclick="sendStore(1)" disabled="disabled">
             </div>
-            <div style="display: flex; margin: 10px 0;">
+            <div class="menu-paragraph">
                 <label for="opening-decoded">opening:&nbsp;</label><input id="opening-decoded" type="text" disabled="disabled"><input id="opening" type="hidden">
             </div>
-            <div style="display: flex; margin: 10px 0;">
+            <div class="menu-paragraph">
                 <label for="alternate">alternate color</label><input id="alternate" type="checkbox" {% if mode != 'free' %} disabled="disabled" {% else %} checked="checked" {% endif %}>
             </div>
-            <div style="display: flex; margin: 10px 0;">
-                <label for="hints">show hints</label><input id="hints" type="checkbox" disabled="disabled" {% if mode == 'free' %} checked="checked" {% endif %}>
+            <div class="menu-paragraph">
+                <label for="hints">show hints</label><input id="hints" type="checkbox" {% if mode == 'free' %} checked="checked" {% else %} checked="checked" {% endif %} onchange="toggleResult()">
             </div>
-            <div style="display: flex; margin: 10px 0;">
+            <div id="position-result" class="menu-paragraph" {% if mode != 'free' %} style="display: none;" {% endif %}>
+                position result:&nbsp;<span id="winner"></span>
+            </div>
+            <div class="menu-paragraph">
                 <div id="player_1_box" class="player_box message_1">
                     <img id="player_1_active" src="favicon.ico" alt="" style="width: 20px; float: left; padding-right: 10px;">
                     <div id="player_1_box_text">

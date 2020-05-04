@@ -60,6 +60,8 @@ class Board:
 class Cell:
 
     def __init__(self, r, c):
+        r = int(r)
+        c = int(c)
         if r < 0 or c < 0:
             raise Exception
         self.id = f'{chr(c + 97)}{r + 1}'
@@ -152,30 +154,36 @@ class DynamoDB:
         self.client = boto3.resource('dynamodb', region_name='eu-central-1', aws_access_key_id=self.aws_access_key_id,
                                      aws_secret_access_key=self.aws_secret_access_key)
 
-    def load_all_positions(self, first_two, position):
-        if len(position) <= 1:
-            print('position not long enough')
-            return []
+    def get_position_result(self, first_two, position, size=13):
+        print(position)
         position = sorted(position, key=self.position_sorting_key)
+        all_moves = ','.join(position)
 
         table = self.client.Table('Positions')
-        condition = Key('size#first_two_moves').eq(f'{size}#{first_two}')
+        condition = Key('size#first_two_moves').eq(f'{size}#{first_two}') & Key('all_moves').eq(all_moves)
         response = table.query(
             KeyConditionExpression=condition
         )
         items = response.get('Items')
+        return int(items[0].get('winner')) if items else 0
+
+    async def get_position_result_async(self, first_two, position, size=13):
+        return self.get_position_result(first_two, position, size)
 
     def get_positions_for(self, first_two, position=None, size=13):
         position = sorted(position, key=self.position_sorting_key)
         all_moves = ','.join(position)
 
         table = self.client.Table('Positions')
-        condition = Key('size#first_two_moves').eq(f'{size}#{first_two}') & Key('all_moves').eq(all_moves) if all_moves \
+        condition = Key('size#first_two_moves').eq(f'{size}#{first_two}') & Key('all_moves').begins_with(all_moves) if all_moves \
             else Key('first_two_moves').eq(first_two)
         response = table.query(
             KeyConditionExpression=condition
         )
         return response.get('Items')
+
+    async def get_positions_for_async(self, first_two, position=None, size=13):
+        return self.get_positions_for(first_two, position, size)
 
     def store_position(self, opening, position, winner, size=13):
         if len(position) < 20:
@@ -188,7 +196,7 @@ class DynamoDB:
         item = {
             'size#first_two_moves': f'{size}#{opening}',
             'all_moves': all_moves,
-            'state': winner
+            'winner': winner
         }
         try:
             response = table.put_item(
@@ -202,6 +210,8 @@ class DynamoDB:
     @staticmethod
     def position_sorting_key(move):
         split = move.split('-')
+        if len(split) < 2:
+            raise Exception(f'move cannot be handled: {move}')
         return int(split[0]) * 100 + int(split[1])
 
     async def store_position_async(self, opening, position, winner, size=13):

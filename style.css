@@ -57,6 +57,10 @@
 .menu-container {
     width: 100%;
 }
+.menu-paragraph {
+    display: flex;
+    margin: 10px 0;
+}
 
 .chat {
     /*display: flex;*/
@@ -84,4 +88,8 @@
 .cell {
     stroke:black;
     stroke-width:1.0;
+    fill: #FFCF79;
+}
+.cell:hover {
+    fill: #efc27d;
 }
