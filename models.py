@@ -179,6 +179,7 @@ class DynamoDB:
         else:
             # position = sorted(position, key=self.position_sorting_key)
             min_length = len(position)
+            print(min_length, position, size, opening)
             condition = Key('size#opening').eq(f'{size}#{opening}') & Key('length').gte(min_length)
 
         table = self.client.Table('Positions')
@@ -186,6 +187,7 @@ class DynamoDB:
             KeyConditionExpression=condition,
             ProjectionExpression='all_moves, winner'
         )
+        print(response.get('Items'))
         return response.get('Items')
 
     async def get_positions_for_async(self, opening, position=None, size=13):
@@ -194,12 +196,11 @@ class DynamoDB:
     def store_position(self, opening, position, winner, size=13):
         position = sorted(position, key=self.position_sorting_key)
 
-        all_moves = ','.join(position)
         table = self.client.Table('Positions')
         item = {
             'size#opening': f'{size}#{opening}',
             'length': len(position),
-            'all_moves': all_moves,
+            'all_moves': position,
             'winner': winner
         }
         try:

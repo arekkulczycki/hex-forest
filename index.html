@@ -237,6 +237,8 @@
         function removeStone(id) {
             $(`#${id}`).remove();
 
+            setOpening();
+
             clearHints();
 
             if ($('#hints').prop('checked'))

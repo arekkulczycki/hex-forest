@@ -120,7 +120,7 @@ async def register(websocket, free):
     player = assign_a_player(websocket)
     clients[websocket] = player
 
-    tasks = [send_assigned_players(websocket)]
+    tasks = [send_assigned_players(player)]
     if player.id:
         # lock.acquire()
         # with open('players.json', 'w') as players_file:
@@ -155,9 +155,14 @@ async def register(websocket, free):
 
 
 async def handle_set_name(player, name):
-    player.name = name
+    player.name = name if name else 'player'
 
-    await send_assigned_players(player)
+    message_dict = {
+        'type': 'players',
+        'players': [{'id': player.id, 'name': player.name}]
+    }
+    print(message_dict)
+    await send_to_board(message_dict, player.websocket)
 
 
 async def send_assigned_players(player):
@@ -165,7 +170,7 @@ async def send_assigned_players(player):
         'type': 'players',
         'players': [{'id': player_id, 'name': player.name} for player_id, player in players.items() if player is not None]
     }
-    await send_to_board(message_dict, player)
+    await send_to_self(message_dict, player.websocket)
 
 
 async def unregister(websocket, free):
@@ -232,10 +237,8 @@ async def handle_board_click(player, r, c, alternate, hints, free=False):
     global position
     if not free and hints and len(position) >= 2:
         first_coords = position[0].split('-')
-        first = f'{chr(int(first_coords[0]) + 97)}{int(first_coords[1]) + 1}'
-        second_coords = position[1].split('-')
-        second = f'{chr(int(second_coords[0]) + 97)}{int(second_coords[1]) + 1}'
-        await handle_hints(player, f'{first},{second}', position)
+        opening = f'{chr(int(first_coords[1]) + 97)}{int(first_coords[0]) + 1}'
+        await handle_hints(player, opening, position)
 
 
 async def make_move(player, moving_player_id, r, c, free=False):
@@ -249,7 +252,7 @@ async def make_move(player, moving_player_id, r, c, free=False):
     else:
         global turn
         global position
-        position.append(f'{r}-{c}')
+        position.append(f'{r}-{c}-{turn}')
         turn = WHITE_COLOR if len(position) % 2 == 1 else BLACK_COLOR
 
     # positions = db.get_positions_for('a1,b2')
@@ -290,6 +293,7 @@ async def handle_undo(player):
     global turn
     turn = BLACK_COLOR if turn == WHITE_COLOR else WHITE_COLOR
 
+    global position
     id = position.pop()
     message_dict = {
         'type': 'remove',
@@ -327,7 +331,12 @@ async def handle_swap(player, free=False):
     player_2.id = 1
     players[1] = player_2
     players[2] = player_1
-    await send_assigned_players(player)
+
+    message_dict = {
+        'type': 'players',
+        'players': [{'id': player_id, 'name': player.name} for player_id, player in players.items() if player is not None]
+    }
+    await send_to_board(message_dict, player.websocket)
 
 
 async def handle_save_game(player, game_id):
@@ -427,7 +436,8 @@ async def handle_hints(player, opening, position):
 
     t_1 = time()
     for pos in all_positions:
-        all_moves = pos.get('all_moves').split(',')
+        all_moves = pos.get('all_moves')
+        print(all_moves, position)
         # is_subset, diff_moves = rest_if_is_subset(position, moves_n, all_moves)
         is_subset, diff_moves = rest_if_is_subset_faster(position, all_moves)
         if is_subset:
@@ -441,6 +451,7 @@ async def handle_hints(player, opening, position):
                     options[cell_id] = position_outcome(options.get(cell_id), int(winner))
     t_2 = time()
     print(f'search took {t_2 - t_1}')
+    print(options)
 
     tasks = []
     for move, outcomes in options.items():
