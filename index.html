@@ -2,6 +2,7 @@
 <head title="boardgame">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js"></script>
     <script>
         let socket;
         function connect() {
@@ -11,6 +12,9 @@
                 console.log('Connection established');
                 console.log('Sending to server');
                 socket.send('socket opened');
+
+                let name = Cookies.get('hex_forest_name');
+                setName(name);
             };
 
             socket.onmessage = function (event) {
@@ -312,6 +316,23 @@
             return `${first}${parseInt(split[0]) + 1}`
         }
 
+        function changeName() {
+            let name = $('#nickname').val();
+            Cookies.set('hex_forest_name', name);
+
+            setName(name);
+        }
+
+        function setName(name) {
+            $('#nickname').val(name);
+
+            let message = {
+                'action': 'name',
+                'name': name
+            };
+            socket.send(JSON.stringify(message))
+        }
+
     </script>
 </head>
 <body>
@@ -343,6 +364,9 @@
             </svg>
         </div>
         <div class="menu-container">
+            <div class="menu-paragraph">
+                <label for="nickname">your name:&nbsp;</label><input id="nickname" type="text" placeholder="your name" style="width: 130px;"><input type="button" value="send" onclick="changeName()">
+            </div>
             <div class="menu-paragraph">
                 <input type="button" value="undo" onclick="sendUndo()" {% if mode == 'free' %} disabled="disabled" {% endif %}>
                 <input id="swap" type="button" value="swap" onclick="sendSwap()">

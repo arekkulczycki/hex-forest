@@ -154,6 +154,12 @@ async def register(websocket, free):
     await asyncio.wait(tasks)
 
 
+async def handle_set_name(player, name):
+    player.name = name
+
+    await send_assigned_players(player)
+
+
 async def send_assigned_players(player):
     message_dict = {
         'type': 'players',
@@ -393,7 +399,7 @@ async def handle_hints(player, opening, position):
 
     tasks = [
         db.get_position_result_async(opening, position),
-        db.get_positions_for_async(opening)  # not passing any position on purpose
+        db.get_positions_for_async(opening, position)
     ]
     finished_tasks = (await asyncio.wait(tasks))[0]
 
@@ -414,14 +420,16 @@ async def handle_hints(player, opening, position):
 
     options = {}
     positions_n = 0
+
+    position = sorted(position, key=db.position_sorting_key)
     moves_n = len(position)
     turn = WHITE_COLOR if moves_n % 2 == 1 else BLACK_COLOR
 
     t_1 = time()
     for pos in all_positions:
         all_moves = pos.get('all_moves').split(',')
-        is_subset, diff_moves = rest_if_is_subset(position, moves_n, all_moves)
-        # is_subset, diff_moves = rest_if_is_subset_fast(position, all_moves)
+        # is_subset, diff_moves = rest_if_is_subset(position, moves_n, all_moves)
+        is_subset, diff_moves = rest_if_is_subset_faster(position, all_moves)
         if is_subset:
             positions_n += 1
             winner = pos.get('winner')
@@ -451,8 +459,37 @@ async def handle_hints(player, opening, position):
         await asyncio.wait(tasks)
 
 
-# def rest_if_is_subset_fast(moves, all_moves):
-#     pass
+def bisect_left(a, x, lo=0, hi=None):
+    if hi is None:
+        hi = len(a)
+    while lo < hi:
+        mid = (lo+hi)//2
+        if db.position_move_bigger(x, a[mid]):
+            lo = mid+1
+        else:
+            hi = mid
+    return lo
+
+
+def rest_if_is_subset_faster(moves, all_moves):
+    indices = []
+    n = len(all_moves)
+    i = 0
+    for move in moves:
+        i = bisect_left(all_moves, move, i, n)
+        if all_moves[i] != move:
+            return False, None
+        else:
+            indices.append(i)
+
+    rest = all_moves.copy()
+    for i in sorted(indices, reverse=True):
+        try:
+            del rest[i]
+        except IndexError:
+            print(f'wrong index in REST: {i}, position length: {n}')
+
+    return True, rest
 
 
 # slow implementation (not using position order)
@@ -522,6 +559,8 @@ async def receive(websocket, path):
                         await handle_store_position(player, data.get('opening'), data.get('position'), data.get('result'))
                     elif action == 'hints':
                         await handle_hints(player, data.get('opening'), data.get('position'))
+                    elif action == 'name':
+                        await handle_set_name(player, data.get('name'))
                 except JSONDecodeError as e:
                     print(e, message)
     except Exception as e:

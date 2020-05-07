@@ -156,26 +156,30 @@ class DynamoDB:
 
     def get_position_result(self, opening, position, size=13):
         position = sorted(position, key=self.position_sorting_key)
-        all_moves = ','.join(position)
+        length = len(position)
 
         table = self.client.Table('Positions')
-        condition = Key('size#opening').eq(f'{size}#{opening}') & Key('all_moves').eq(all_moves)
+        condition = Key('size#opening').eq(f'{size}#{opening}') & Key('length').eq(length)
         response = table.query(
             KeyConditionExpression=condition
         )
         items = response.get('Items')
-        return int(items[0].get('winner')) if items else 0
+
+        for item in items:
+            if item.get('all_moves') == position:
+                return int(item.get('winner'))
+        return 0
 
     async def get_position_result_async(self, opening, position, size=13):
         return self.get_position_result(opening, position, size)
 
     def get_positions_for(self, opening, position=None, size=13):
         if position is None:
-            condition = Key('size#opening').eq(f'{size}#{opening}')
+            condition = Key('size#opening').eq(f'{size}#{opening}') & Key('length').gte(0)
         else:
-            position = sorted(position, key=self.position_sorting_key)
-            all_moves = ','.join(position)
-            condition = Key('size#opening').eq(f'{size}#{opening}') & Key('all_moves').begins_with(all_moves)
+            # position = sorted(position, key=self.position_sorting_key)
+            min_length = len(position)
+            condition = Key('size#opening').eq(f'{size}#{opening}') & Key('length').gte(min_length)
 
         table = self.client.Table('Positions')
         response = table.query(
@@ -194,6 +198,7 @@ class DynamoDB:
         table = self.client.Table('Positions')
         item = {
             'size#opening': f'{size}#{opening}',
+            'length': len(position),
             'all_moves': all_moves,
             'winner': winner
         }
@@ -212,6 +217,12 @@ class DynamoDB:
         if len(split) < 2:
             raise Exception(f'move cannot be handled: {move}')
         return int(split[0]) * 100 + int(split[1])
+
+    @staticmethod
+    def position_move_bigger(move_a, move_b):
+        split_a = move_a.split('-')
+        split_b = move_b.split('-')
+        return int(split_a[0]) * 100 + int(split_a[1]) > int(split_b[0]) * 100 + int(split_b[1])
 
     async def store_position_async(self, opening, position, winner, size=13):
         return self.store_position(opening, position, winner, size)
