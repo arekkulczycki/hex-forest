@@ -44,7 +44,7 @@
     flex-direction: column;
     flex-wrap: wrap;
 }
-@media only screen and (min-width: 576px) {
+@media only screen and (min-device-width: 480px) {
     .arena {
         flex-direction: row;
         flex-wrap: nowrap;
@@ -53,9 +53,12 @@
 
 .board-container {
     width: 100%;
+    flex:  2 1 0;
 }
 .menu-container {
     width: 100%;
+    flex: 1 1 0;
+    min-width: 460px;
 }
 .menu-paragraph {
     display: flex;
@@ -65,7 +68,6 @@
 .chat {
     /*display: flex;*/
     height: 200px;
-    min-width: 460px;
     border: solid 1px black;
     padding: 10px;
     overflow-y: scroll;
