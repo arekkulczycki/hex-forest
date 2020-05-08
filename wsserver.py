@@ -30,16 +30,32 @@ WHITE_COLOR = 2
 turn = BLACK_COLOR
 
 
+def ssl_decorator(decorated_function):
+    def function(request, **kwargs):
+        request.headers['Content-Security-Policy'] = 'upgrade-insecure-requests'
+        # TODO: make it work?
+        # if 'https://' not in request.url:
+        #     print('not secure!')
+        # else:
+        #     print('secure!')
+        kwargs['request'] = request
+        return decorated_function(request)
+    return function
+
+
+@ssl_decorator
 def styles(request):
     with open('style.css') as html_file:
         return request.Response(text=html_file.read(), mime_type='text/css')
 
 
+@ssl_decorator
 def favicon(request):
     with open('hex.png', 'rb') as favicon:
         return request.Response(body=favicon.read(), mime_type='image/png')
 
 
+@ssl_decorator
 def show_board(request, mode=''):
     with open('index.html') as html_file:
         template = Template(html_file.read())
@@ -68,6 +84,7 @@ def show_board(request, mode=''):
         return request.Response(text=template.render(**template_context), mime_type='text/html')
 
 
+@ssl_decorator
 def show_free_board(request):
     return show_board(request, 'free')
 
@@ -76,6 +93,7 @@ def show_free_board(request):
 # It wakes up every second 1 to print and finally returns after 3 seconds.
 # This does let other handlers to be executed in the same processes while
 # from the point of view of the client it took 3 seconds to complete.
+@ssl_decorator
 async def asynchronous(request):
     for i in range(1, 4):
         await asyncio.sleep(1)
