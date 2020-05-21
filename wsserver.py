@@ -31,15 +31,14 @@ turn = BLACK_COLOR
 
 
 def ssl_decorator(decorated_function):
-    def function(request, **kwargs):
+    def function(request, *args, **kwargs):
         request.headers['Content-Security-Policy'] = 'upgrade-insecure-requests'
         # TODO: make it work?
         # if 'https://' not in request.url:
         #     print('not secure!')
         # else:
         #     print('secure!')
-        kwargs['request'] = request
-        return decorated_function(request)
+        return decorated_function(request, *args, **kwargs)
     return function
 
 
