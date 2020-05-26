@@ -386,13 +386,14 @@ async def handle_undo(player):
     turn = BLACK_COLOR if turn == WHITE_COLOR else WHITE_COLOR
 
     global position
-    id = position.pop()
-    message_dict = {
-        'type': 'remove',
-        'id': id,
-        'message': f'Player {player.id} has clicked undo'
-    }
-    await send_to_board(message_dict, player.websocket)
+    if position:
+        id = position.pop()
+        message_dict = {
+            'type': 'remove',
+            'id': id,
+            'message': f'Player {player.id} has clicked undo'
+        }
+        await send_to_board(message_dict, player.websocket)
 
 
 async def handle_clear(player):
