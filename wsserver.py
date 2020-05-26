@@ -14,6 +14,10 @@ from jinja2 import Template
 
 from models import Player, Board, Cell, DynamoDB, DecimalEncoder
 
+VERSION_MAJOR = 0
+VERSION_MINOR = 0
+VERSION_PATCH = 2
+
 players = {1: None, 2: None}
 free_clients = {}
 clients = {}
@@ -49,6 +53,12 @@ def styles(request):
 
 
 @ssl_decorator
+def scripts(request):
+    with open('js.js') as js_file:
+        return request.Response(text=js_file.read(), mime_type='text/javascript')
+
+
+@ssl_decorator
 def favicon(request):
     with open('hex.png', 'rb') as favicon:
         return request.Response(body=favicon.read(), mime_type='image/png')
@@ -73,6 +83,7 @@ def show_board(request, mode=''):
             websocket_address = f'wss://hex-forest-ws.herokuapp.com/{websocket_route}'
 
         template_context = {
+            'version': f'{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_PATCH}',
             'rows': board.rows,
             'websocket_address': websocket_address,
             'mode': mode,
@@ -88,6 +99,11 @@ def show_free_board(request):
     return show_board(request, 'free')
 
 
+@ssl_decorator
+def show_board_with_priviledges(request):
+    return show_board(request, 'p')
+
+
 # This is an asynchronous handler, it spends most of the time in the event loop.
 # It wakes up every second 1 to print and finally returns after 3 seconds.
 # This does let other handlers to be executed in the same processes while
@@ -101,19 +117,13 @@ async def asynchronous(request):
     return request.Response(text='X seconds elapsed')
 
 
-def assign_a_player(websocket):
-    for i in range(1, 3):
-        player = players.get(i)
-        if not player:
-            player = Player(i, websocket, f'player name {i}')
-            players[i] = player
-            return player
-        elif not player.present:
-            player.present = True
-            player.websocket = websocket
-            players[i] = player
-            return player
-    return Player(0, websocket, 'spectator', 0)
+def assign_player(websocket):
+    _id = random.randint(3, 1000000)
+    player = Player(_id, websocket, 'spectator', 0)
+    print(f'connected as spectator with id: {player.id}')
+
+    clients[websocket] = player
+    return player
 
 
 async def send_to_board(message_dict, websocket=None):
@@ -124,9 +134,10 @@ async def send_to_board(message_dict, websocket=None):
         await asyncio.wait([client.send(message) for client in clients])
 
 
-async def send_to_self(message_dict, websocket):
-    message = DecimalEncoder().encode(message_dict)
-    await websocket.send(message)
+async def send_to_one(message_dict, websocket):
+    if websocket:
+        message = DecimalEncoder().encode(message_dict)
+        await websocket.send(message)
 
 
 async def register(websocket, free):
@@ -134,25 +145,19 @@ async def register(websocket, free):
     if free:
         free_clients[websocket] = Player(3, websocket, 'free')
         return
-    player = assign_a_player(websocket)
-    clients[websocket] = player
+    player = assign_player(websocket)
 
     tasks = [send_assigned_players(player)]
-    if player.id:
-        # lock.acquire()
-        # with open('players.json', 'w') as players_file:
-        #     players_file.write(json.dumps(players, cls=DictEncoder))
-        # lock.release()
 
-        host = websocket.request_headers.get('host')
-        user_agent = websocket.request_headers.get('User-Agent')
-        message_dict = {
-            'type': 'playerIn',
-            'player_id': player.id,
-            'player_name': player.name,
-            'message': 'Player {} has joined!'.format(player.id),
-        }
-        tasks.append(send_to_board(message_dict, websocket))
+    host = websocket.request_headers.get('host')
+    user_agent = websocket.request_headers.get('User-Agent')
+    message_dict = {
+        'type': 'playerIn',
+        'player_id': player.id,
+        'player_name': player.name,
+        'message': 'Player {} has joined!'.format(player.id),
+    }
+    tasks.append(send_to_board(message_dict, websocket))
 
     turn = 1
     for move in position:
@@ -164,7 +169,7 @@ async def register(websocket, free):
             'type': 'move',
             'move': {'player_id': turn, 'id': move, 'cx': Cell.stone_x(r, c), 'cy': Cell.stone_y(r)},
         }
-        tasks.append(send_to_self(message_dict, player.websocket))
+        tasks.append(send_to_one(message_dict, player.websocket))
 
         turn = WHITE_COLOR if turn == BLACK_COLOR else BLACK_COLOR
 
@@ -175,19 +180,87 @@ async def handle_set_name(player, name):
     player.name = name if name else 'player'
 
     message_dict = {
-        'type': 'players',
-        'players': [{'id': player.id, 'name': player.name}]
+        'type': 'playerName',
+        'player_id': player.id,
+        'player_name': player.name
     }
-    print(message_dict)
     await send_to_board(message_dict, player.websocket)
 
 
-async def send_assigned_players(player):
+async def handle_kick_player(_player, kicked_player_id):
+    players[kicked_player_id] = None
+    kicked_player = None
+
+    for websocket, player in clients.items():
+        if player.id == kicked_player_id:
+            _id = random.randint(3, 1000000)
+            player.id = _id
+            kicked_player = player
+
+    if kicked_player:
+        tasks = []
+
+        message_dict = {
+            'type': 'leaveSpot',
+            'spot': kicked_player_id
+        }
+        tasks.append(send_to_board(message_dict, _player.websocket))
+
+        message_dict = {
+            'type': 'kicked',
+            'message': 'Site administrator has dropped you from the board.'
+        }
+        tasks.append(send_to_one(message_dict, kicked_player.websocket))
+
+        await asyncio.wait(tasks)
+
+
+async def handle_join_board(player, spot):
+    try:
+        spot = int(spot)
+    except ValueError:
+        message_dict = {
+            'type': 'alert',
+            'message': 'Sorry, something went wrong...'
+        }
+        await send_to_one(message_dict, player.websocket)
+
+    if players.get(spot) is None:
+        players[spot] = player
+
+        old_id = player.id
+        player.id = spot
+        if old_id in [1, 2]:
+            players[old_id] = None
+            message_dict = {
+                'type': 'leaveSpot',
+                'player_old_id': old_id,
+                'player_id': spot,
+                'player_name': player.name
+            }
+            await send_to_board(message_dict, player.websocket)
+        message_dict = {
+            'type': 'takeSpot',
+            'player_old_id': old_id,
+            'player_id': spot,
+            'player_name': player.name
+        }
+        await send_to_board(message_dict, player.websocket)
+    else:
+        message_dict = {
+            'type': 'alert',
+            'message': 'Sorry, spot is taken!'
+        }
+        await send_to_one(message_dict, player.websocket)
+
+
+async def send_assigned_players(_player):
     message_dict = {
         'type': 'players',
-        'players': [{'id': player_id, 'name': player.name} for player_id, player in players.items() if player is not None]
+        'players': [{'id': player.id, 'name': '__name__' if player == _player else player.name}
+                    for websocket, player in clients.items() if player is not None]
     }
-    await send_to_self(message_dict, player.websocket)
+    await send_to_one(message_dict, _player.websocket)
 
 
 async def unregister(websocket, free):
@@ -199,10 +272,12 @@ async def unregister(websocket, free):
     print('player disconnected')
 
     player_id = clients[websocket].id
+    player = clients[websocket]
+    del player
     del clients[websocket]
 
-    players[player_id].websocket = None
-    players[player_id].present = False
+    if player_id in [1, 2]:
+        players[player_id] = None
 
     # lock.acquire()
     # with open('players.json', 'w') as players_file:
@@ -442,7 +517,7 @@ async def handle_hints(player, opening, position):
         'type': 'result',
         'winner': winner  # TODO: change to relative to the player who's asking???
     }
-    await send_to_self(message_dict, player.websocket)
+    await send_to_one(message_dict, player.websocket)
 
     options = {}
     positions_n = 0
@@ -589,6 +664,11 @@ async def receive(websocket, path):
                         await handle_hints(player, data.get('opening'), data.get('position'))
                     elif action == 'name':
                         await handle_set_name(player, data.get('name'))
+                    elif action == 'kick':
+                        await handle_kick_player(player, data.get('player_id'))
+                    elif action == 'join_board':
+                        if not free:
+                            await handle_join_board(player, data.get('spot'))
                 except JSONDecodeError as e:
                     print(e, message)
     except Exception as e:
@@ -623,8 +703,10 @@ def run(host):
 
     r = app.router
     r.add_route('/', show_board)
+    r.add_route('/priviledges', show_board_with_priviledges)
     r.add_route('/free', show_free_board)
     r.add_route('/style.css', styles)
+    r.add_route('/js.js', scripts)
     r.add_route('/async', asynchronous)
     r.add_route('/favicon.ico', favicon)
 

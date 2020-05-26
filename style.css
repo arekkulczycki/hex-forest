@@ -19,6 +19,10 @@
     background: #FFCF79;
     font-family: monospace;
 }
+.player_text {
+    display: list-item;
+    list-style: none;
+}
 
 .message {
     font-size: 18px;
@@ -63,6 +67,16 @@
 .menu-paragraph {
     display: flex;
     margin: 10px 0;
+}
+.menu-paragraph-big {
+    font-weight: bold;
+    margin: 30px 0;
+}
+.spectators {
+    font-weight: normal;
+}
+.spectator-name {
+    margin: 5px;
 }
 
 .chat {

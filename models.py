@@ -160,10 +160,14 @@ class DynamoDB:
 
         table = self.client.Table('Positions')
         condition = Key('size#opening').eq(f'{size}#{opening}') & Key('length').eq(length)
-        response = table.query(
-            KeyConditionExpression=condition
-        )
-        items = response.get('Items')
+        try:
+            response = table.query(
+                KeyConditionExpression=condition
+            )
+            items = response.get('Items')
+        except Exception as e:
+            print(e)
+            return 0
 
         for item in items:
             if item.get('all_moves') == position:
@@ -183,11 +187,15 @@ class DynamoDB:
             condition = Key('size#opening').eq(f'{size}#{opening}') & Key('length').gte(min_length)
 
         table = self.client.Table('Positions')
-        response = table.query(
-            KeyConditionExpression=condition,
-            ProjectionExpression='all_moves, winner'
-        )
-        print(response.get('Items'))
+        try:
+            response = table.query(
+                KeyConditionExpression=condition,
+                ProjectionExpression='all_moves, winner'
+            )
+            print(response.get('Items'))
+        except Exception as e:
+            print(e)
+            return []
         return response.get('Items')
 
     async def get_positions_for_async(self, opening, position=None, size=13):
@@ -246,10 +254,14 @@ class DynamoDB:
     def load_game(self, game_id):
         table = self.client.Table('Games')
         condition = Key('game_id').eq(game_id)
-        response = table.query(
-            KeyConditionExpression=condition
-        )
-        items = response.get('Items')
+        try:
+            response = table.query(
+                KeyConditionExpression=condition
+            )
+            items = response.get('Items')
+        except Exception as e:
+            print(e)
+            return None
         return items[0] if items else None
 
 

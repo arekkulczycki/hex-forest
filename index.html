@@ -1,342 +1,11 @@
 <html lang="en-us">
 <head title="boardgame">
     <title>Hex Forest</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v={{ version }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js"></script>
-    <script>
-        let socket;
-        function connect() {
-            socket = new WebSocket('{{ websocket_address }}');
-
-            socket.onopen = function (e) {
-                console.log('Connection established');
-                console.log('Sending to server');
-                socket.send('socket opened');
-
-                let name = Cookies.get('hex_forest_name');
-                setName(name);
-            };
-
-            socket.onmessage = function (event) {
-                let data = JSON.parse(event.data);
-                console.log(data);
-                switch (data.type) {
-                    case 'info':
-                        console.log(data.message);
-                        break;
-                    case 'players':
-                        for (let i=0; i<data.players.length; i++) {
-                            assignPlayer(data.players[i].id, data.players[i].name);
-                        }
-                        break;
-                    case 'playerIn':
-                        console.log(data.message);
-                        assignPlayer(data.player_id, data.player_name);
-                        break;
-                    case 'playerOut':
-                        console.log(data.message);
-                        removePlayer(data.player_id);
-                        break;
-                    case 'move':
-                        let player_id = data.move.player_id;
-                        let id = data.move.id;
-                        let cx = data.move.cx;
-                        let cy = data.move.cy;
-                        putStone(id, cx, cy, player_id);
-                        break;
-                    case 'remove':
-                        console.log(data.message);
-                        removeStone(data.id);
-                        break;
-                    case 'clear':
-                        console.log(data.message);
-                        clearBoard();
-                        break;
-                    case 'chat':
-                        handleMessage(data.player_id, data.message);
-                        break;
-                    case 'saved':
-                        $('#game_id').val(data.game_id);
-                        break;
-                    case 'hint':
-                        showHint(data.move, data.winner.toString());
-                        break;
-                    case 'result':
-                        showWinner(parseInt(data.winner));
-                        break;
-                    default:
-                        console.log('Unsupported event', data)
-                }
-            };
-
-            socket.onclose = function (event) {
-                if (event.wasClean) {
-                    console.log(`Connection closed cleanly, code=${event.code}
-                        reason=${event.reason}`);
-                } else {
-                    console.log('Connection died');
-                    console.log('Trying to reconnect...');
-                    setTimeout(function() {
-                        connect();
-                    }, 1000);
-                }
-            };
-
-            socket.onerror = function (error) {
-                console.log(`[error] ${error.message}`);
-            };
-        }
-        connect();
-
-        function handleMessage(player_id, message) {
-            let message_block = `<div class="message message_${player_id}">${message}</div>`;
-            let chat = $('#chat');
-            chat.append(message_block);
-            chat.animate({scrollTop: chat.height()}, 500);
-        }
-
-        function toggleResult() {
-            let result = $('#position-result');
-            if ($('#hints').prop('checked'))
-                result.show();
-            else
-                result.hide();
-        }
-
-        function showWinner(winner) {
-            toggleResult();
-            let winner_name = winner === 0 ? 'not solved' : (winner === 1 ? 'black' : 'white');
-            $('#winner').html(winner_name);
-        }
-
-        function showHint(move, winner) {
-            let cell_id = coordsToId(move);
-            let cell = $(`#${cell_id}`);
-
-            if (winner === '0')
-                cell.css('fill', 'url(#Mixed)');
-            else if (winner === '{{ black_color }}')
-                cell.css('fill', 'url(#Black)');
-            else if (winner === '{{ white_color }}')
-                cell.css('fill', 'url(#White)');
-        }
-
-        function clearHints() {
-            $('#board').find('.cell').each((i, e) => {
-                $(e).css('fill', '#FFCF79');
-            });
-        }
-
-        function assignPlayer(player_id, player_name) {
-            $(`#player_${player_id}_box_text`).text(player_name)
-        }
-
-        function removePlayer(player_id, player_name) {
-            $(`#player_${player_id}_box_text`).text('')
-        }
-
-        function boardClick(row, column) {
-            let message = {
-                'action': 'board_click',
-                'row': row,
-                'column': column,
-                'alternate': $('#alternate').prop('checked'),
-                'hints': $('#hints').prop('checked')
-            };
-            socket.send(JSON.stringify(message))
-        }
-
-        function sendStore(winningPlayerId) {
-            $('#storeWhite').prop('disabled', 'disabled');
-            $('#storeBlack').prop('disabled', 'disabled');
-            setTimeout(() => {
-                $('#storeWhite').prop('disabled', false);
-                $('#storeBlack').prop('disabled', false);
-            }, 3000);
-
-            let message = {
-                'action': 'store',
-                'opening': $('#opening-decoded').val(),
-                'position': getAllStones(),
-                'result': winningPlayerId,
-            };
-            socket.send(JSON.stringify(message));
-        }
-
-        function getAllStones() {
-            let stones = [];
-            $('#board').find('circle').each((i, e) => {
-                let color = $(e).attr('fill') === 'white' ? '{{ white_color }}' : '{{ black_color }}';
-                stones.push(`${e.id}-${color}`);
-            });
-            return stones;
-        }
-
-        function saveGame() {
-            let message = {
-                'action': 'save',
-                'game_id': $('#game_id').val()
-            };
-            socket.send(JSON.stringify(message))
-        }
-
-        function loadGame() {
-            let message = {
-                'action': 'load',
-                'game_id': $('#game_id').val()
-            };
-            socket.send(JSON.stringify(message))
-        }
-
-        function sendUndo() {
-            let message = {
-                'action': 'undo'
-            };
-            socket.send(JSON.stringify(message))
-        }
-
-        function sendSwap() {
-            let message = {
-                'action': 'swap'
-            };
-            socket.send(JSON.stringify(message))
-        }
-
-        function sendClearBoard() {
-            let message = {
-                'action': 'clear'
-            };
-            socket.send(JSON.stringify(message));
-        }
-
-        function clearBoard() {
-            $('#board').find(`circle`).each((i, e) => {
-                e.remove();
-            });
-        }
-
-        function sendRemoveStone(id) {
-            let message = {
-                'action': 'remove',
-                'id': id
-            };
-            socket.send(JSON.stringify(message))
-        }
-
-        function sendMessage() {
-            let messageBox = $('#message');
-            let message = {
-                'action': 'chat',
-                'message': messageBox.val()
-            };
-            socket.send(JSON.stringify(message));
-
-            messageBox.val('')
-        }
-
-        function removeStone(id) {
-            $(`#${id}`).remove();
-
-            setOpening();
-
-            clearHints();
-
-            if ($('#hints').prop('checked'))
-                sendLoadHints();
-        }
-
-        function putStone(id, cx, cy, player_id) {
-            let fill = player_id === 1 ? 'black' : 'white';
-
-            let xmlns = 'http://www.w3.org/2000/svg';
-            let stone = document.createElementNS(xmlns,'circle');
-            stone.setAttributeNS(null, 'id', id);
-            stone.setAttributeNS(null, 'cx', cx);
-            stone.setAttributeNS(null, 'cy', cy);
-            stone.setAttributeNS(null, 'r', '11.0');
-            stone.setAttributeNS(null, 'fill', fill);
-            stone.setAttributeNS(null, 'onclick', `sendRemoveStone('${id}')`);
-
-            $('#board').append(stone);
-
-            clearHints();
-
-            setOpening();
-            if ('{{ mode }}' === 'free' && $('#hints').prop('checked'))
-                sendLoadHints();
-        }
-
-        function sendLoadHints() {
-            let message = {
-                'action': 'hints',
-                'opening': $('#opening-decoded').val(),
-                'position': getAllStones()
-            };
-            socket.send(JSON.stringify(message))
-        }
-
-        function setOpening() {
-            let stones = getAllStones();
-            //if (stones.length === 2) {
-            //    $('#swap').prop('disabled', 'disabled');
-            //
-            //    $('#storeWhite').prop('disabled', 'disabled');
-            //    $('#storeBlack').prop('disabled', 'disabled');
-            //
-            //    let first = coordsToId(stones[0]);
-            //    let second = coordsToId(stones[1]);
-            //    $('#opening-decoded').val(`${first},${second}`);
-            //}
-            if (stones.length === 1) {
-                $('#swap').prop('disabled', false);
-
-                $('#storeWhite').prop('disabled', 'disabled');
-                $('#storeBlack').prop('disabled', 'disabled');
-
-                let first = coordsToId(stones[0]);
-                $('#opening-decoded').val(first);
-            }
-            else if (stones.length < {{ store_minimum }}) {
-                $('#swap').prop('disabled', 'disabled');
-
-                $('#storeWhite').prop('disabled', 'disabled');
-                $('#storeBlack').prop('disabled', 'disabled');
-            }
-            else {
-                $('#swap').prop('disabled', 'disabled');
-
-                $('#storeWhite').prop('disabled', false);
-                $('#storeBlack').prop('disabled', false);
-            }
-        }
-
-        function coordsToId(coords) {
-            let split = coords.split('-');
-            if (split.length < 2)
-                return null;
-            let first = String.fromCharCode(65 + parseInt(split[1])).toLowerCase();
-            return `${first}${parseInt(split[0]) + 1}`
-        }
-
-        function changeName() {
-            let name = $('#nickname').val();
-            Cookies.set('hex_forest_name', name);
-
-            setName(name);
-        }
-
-        function setName(name) {
-            $('#nickname').val(name);
-
-            let message = {
-                'action': 'name',
-                'name': name
-            };
-            socket.send(JSON.stringify(message))
-        }
-
-    </script>
+    <script src="js.js?v={{ version }}" ws-address="{{ websocket_address }}" black-color="{{ black_color }}"
+            white-color="{{ white_color }}" mode="{{ mode }}" store-minimum="{{ store_minimum }}"></script>
 </head>
 <body>
     <div class="arena">
@@ -398,21 +67,28 @@
             </div>
             <div class="menu-paragraph">
                 <div id="player_1_box" class="player_box message_1">
-                    <img id="player_1_active" src="favicon.ico" alt="" style="width: 20px; float: left; padding-right: 10px;">
-                    <div id="player_1_box_text">
+                    <img id="player_1_active" src="favicon.ico" alt="" style="width: 20px; float: left; padding-right: 10px;" {% if mode == 'p' %} onclick="kickPlayer(1)" {% endif %}>
+                    <div id="player_1_box_text" class="player_text" onclick="joinBoard(1)">
+                        click to play
                     </div>
                 </div>
                 <div id="player_2_box" class="player_box message_2">
-                    <img id="player_2_active" src="favicon.ico" alt="" style="width: 20px; float: left; padding-right: 10px;">
-                    <div id="player_2_box_text">
+                    <img id="player_2_active" src="favicon.ico" alt="" style="width: 20px; float: left; padding-right: 10px;" {% if mode == 'p' %} onclick="kickPlayer(2)" {% endif %}>
+                    <div id="player_2_box_text" class="player_text" onclick="joinBoard(2)">
+                        click to play
                     </div>
                 </div>
             </div>
             <div id="chat" class="chat">
             </div>
             <div>
-                <textarea id="message" rows="3" cols="50"></textarea>
+                <textarea id="message" rows="3" cols="50" onkeypress="trySendMessage()"></textarea>
                 <input type="button" value="send" onclick="sendMessage()" {% if mode == 'free' %} disabled="disabled" {% endif %}>
+            </div>
+            <div class="menu-paragraph-big">
+                spectators:
+                <div class="spectators">
+                </div>
             </div>
         </div>
     </div>
