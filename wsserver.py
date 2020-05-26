@@ -16,7 +16,7 @@ from models import Player, Board, Cell, DynamoDB, DecimalEncoder
 
 VERSION_MAJOR = 0
 VERSION_MINOR = 0
-VERSION_PATCH = 2
+VERSION_PATCH = 3
 
 players = {1: None, 2: None}
 free_clients = {}

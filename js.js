@@ -205,7 +205,7 @@ function assignPlayer(player_id, player_name) {
 
 function removePlayer(player_id, player_name) {
     if (player_id === 1 || player_id === 2)
-        $(`#player_${player_id}_box_text`).text('');
+        $(`#player_${player_id}_box_text`).html('click to play');
     else
         $(`#${player_id}`).remove();
 }
