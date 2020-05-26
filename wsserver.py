@@ -639,28 +639,33 @@ async def receive(websocket, path):
                     data = json.loads(message)
                     action = data.get('action')
                     if action == 'board_click':
-                        await handle_board_click(player, data.get('row'), data.get('column'), data.get('alternate'),
-                                                 data.get('hints'), free)
+                        if player.id in [1, 2]:
+                            await handle_board_click(player, data.get('row'), data.get('column'), data.get('alternate'),
+                                                     data.get('hints'), free)
                     elif action == 'chat':
                         if not free:
                             await handle_chat_message(player, data.get('message'))
                     elif action == 'remove':
-                        if free:
+                        if free and player.id in [1, 2]:
                             await handle_remove(player, data.get('id'))
                     elif action == 'undo':
-                        if not free:
+                        if not free and player.id in [1, 2]:
                             await handle_undo(player)
                     elif action == 'swap':
-                        await handle_swap(player, free)
+                        if player.id in [1, 2]:
+                            await handle_swap(player, free)
                     elif action == 'clear':
-                        await handle_clear(player)
+                        if player.id in [1, 2]:
+                            await handle_clear(player)
                     elif action == 'save':
                         if not free:
                             await handle_save_game(player, data.get('game_id'))
                     elif action == 'load':
-                        await handle_load_game(player, data.get('game_id'))
+                        if player.id in [1, 2]:
+                            await handle_load_game(player, data.get('game_id'))
                     elif action == 'store':
-                        await handle_store_position(player, data.get('opening'), data.get('position'), data.get('result'))
+                        if player.id in [1, 2]:
+                            await handle_store_position(player, data.get('opening'), data.get('position'), data.get('result'))
                     elif action == 'hints':
                         await handle_hints(player, data.get('opening'), data.get('position'))
                     elif action == 'name':
