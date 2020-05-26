@@ -314,7 +314,7 @@ async def handle_board_click(player, r, c, alternate, hints, free=False):
 
         message_dict = {
             'type': 'move',
-            'move': {'player_id': moving_player, 'id': f'{r}-{c}', 'cx': Cell.stone_x(r, c), 'cy': Cell.stone_y(r)},
+            'move': {'player_id': moving_player, 'id': f'{r}-{c}-{moving_player}', 'cx': Cell.stone_x(r, c), 'cy': Cell.stone_y(r)},
             'message': f'Player {player.id} has clicked cell {chr(c + 97)}{r + 1}'
         }
         tasks = [
