@@ -285,6 +285,7 @@ function sendClearBoard() {
 }
 
 function clearBoard() {
+    clearHints();
     $('#board').find(`circle`).each((i, e) => {
         e.remove();
     });

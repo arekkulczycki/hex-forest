@@ -18,6 +18,8 @@ VERSION_MAJOR = 0
 VERSION_MINOR = 0
 VERSION_PATCH = 3
 
+AWS_ACCOUNT_ID = 448756706136
+
 players = {1: None, 2: None}
 free_clients = {}
 clients = {}
@@ -219,11 +221,7 @@ async def handle_join_board(player, spot):
     try:
         spot = int(spot)
     except ValueError:
-        message_dict = {
-            'type': 'alert',
-            'message': 'Sorry, something went wrong...'
-        }
-        await send_to_one(message_dict, player.websocket)
+        await send_alert('Sorry, something went wrong...', player.websocket)
 
     if players.get(spot) is None:
         players[spot] = player
@@ -247,11 +245,7 @@ async def handle_join_board(player, spot):
         }
         await send_to_board(message_dict, player.websocket)
     else:
-        message_dict = {
-            'type': 'alert',
-            'message': 'Sorry, spot is taken!'
-        }
-        await send_to_one(message_dict, player.websocket)
+        await send_alert('Sorry, spot is taken!', player)
 
 
 async def send_assigned_players(_player):
@@ -449,6 +443,14 @@ async def handle_save_game(player, game_id):
     await asyncio.wait(tasks)
 
 
+async def send_alert(message, player):
+    message_dict = {
+        'type': 'alert',
+        'message': message,
+    }
+    await send_to_one(message_dict, player.websocket)
+
+
 async def handle_load_game(player, game_id):
     if not game_id:
         print('game id not provided')
@@ -456,14 +458,19 @@ async def handle_load_game(player, game_id):
     game = db.load_game(game_id)
 
     if not game:
-        print('game doesn\'t exist in database')
+        message = f'Game with ID: {game_id} doesn\'t exist in database!'
+        print(message)
+        await send_alert(message, player)
         return
+    else:
+        await handle_clear(player)
 
     global position
     position = game.get('position')
 
     global turn
     tasks = []
+
     for move in position:
         split = move.split('-')
         try:
