@@ -236,20 +236,22 @@ class DynamoDB:
     async def store_position_async(self, opening, position, winner, size=13):
         return self.store_position(opening, position, winner, size)
 
-    def save_game(self, game_id, position):
+    def save_game(self, game_id, position, players):
         table = self.client.Table('Games')
         item = {
             'game_id': game_id,
             'timestamp': str(int(time())),
-            'position': position
+            'position': position,
+            'player_1_name': players.get(1).name,
+            'player_2_name': players.get(2).name
         }
         response = table.put_item(
             Item=item
         )
         return response
 
-    async def save_game_async(self, game_id, position):
-        return self.save_game(game_id, position)
+    async def save_game_async(self, game_id, position, players):
+        return self.save_game(game_id, position, players)
 
     def load_game(self, game_id):
         table = self.client.Table('Games')
@@ -263,6 +265,18 @@ class DynamoDB:
             print(e)
             return None
         return items[0] if items else None
+
+    def load_all_games(self):
+        table = self.client.Table('Games')
+        try:
+            response = table.scan(
+                ProjectionExpression='game_id, player_1_name, player_2_name'
+            )
+            items = response.get('Items', [])
+        except Exception as e:
+            print(e)
+            return []
+        return items
 
 
 class DecimalEncoder(json.JSONEncoder):

@@ -79,6 +79,10 @@
     margin: 5px;
 }
 
+.games {
+    font-weight: normal;
+}
+
 .chat {
     /*display: flex;*/
     height: 200px;

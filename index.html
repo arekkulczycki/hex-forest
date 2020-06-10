@@ -90,6 +90,14 @@
                 <div class="spectators">
                 </div>
             </div>
+            <div class="menu-paragraph-big">
+                recently saved games:
+                <div class="games">
+                    {% for game in games %}
+                        <div id="game-{{ game.game_id }}" class="saved-game"><input type="button" onclick="loadGame('{{ game.game_id }}')" value="load game" style="margin-right: 10px;" />{{ game.player_1_name }} : {{ game.player_2_name }}</div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
     </div>
 </body>

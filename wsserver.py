@@ -16,7 +16,7 @@ from models import Player, Board, Cell, DynamoDB, DecimalEncoder
 
 VERSION_MAJOR = 0
 VERSION_MINOR = 0
-VERSION_PATCH = 3
+VERSION_PATCH = 4
 
 AWS_ACCOUNT_ID = 448756706136
 
@@ -84,6 +84,7 @@ def show_board(request, mode=''):
         else:
             websocket_address = f'wss://hex-forest-ws.herokuapp.com/{websocket_route}'
 
+        games = db.load_all_games()
         template_context = {
             'version': f'{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_PATCH}',
             'rows': board.rows,
@@ -91,7 +92,8 @@ def show_board(request, mode=''):
             'mode': mode,
             'store_minimum': STORE_MINIMUM,
             'black_color': BLACK_COLOR,
-            'white_color': WHITE_COLOR
+            'white_color': WHITE_COLOR,
+            'games': games
         }
         return request.Response(text=template.render(**template_context), mime_type='text/html')
 
@@ -438,7 +440,7 @@ async def handle_save_game(player, game_id):
     }
     tasks = [
         send_to_board(message_dict, player.websocket),
-        db.save_game_async(game_id, position)
+        db.save_game_async(game_id, position, players)
     ]
     await asyncio.wait(tasks)
 
@@ -452,6 +454,7 @@ async def send_alert(message, player):
 
 
 async def handle_load_game(player, game_id):
+    print('signal reached target')
     if not game_id:
         print('game id not provided')
         return
@@ -670,6 +673,8 @@ async def receive(websocket, path):
                     elif action == 'load':
                         if player.id in [1, 2]:
                             await handle_load_game(player, data.get('game_id'))
+                        else:
+                            print('Player disallowed to load the game!')
                     elif action == 'store':
                         if player.id in [1, 2]:
                             await handle_store_position(player, data.get('opening'), data.get('position'), data.get('result'))

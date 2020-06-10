@@ -255,11 +255,14 @@ function saveGame() {
     socket.send(JSON.stringify(message))
 }
 
-function loadGame() {
+function loadGame(game_id = null) {
+    if (game_id === null)
+        game_id = $('#game_id').val();
     let message = {
         'action': 'load',
-        'game_id': $('#game_id').val()
+        'game_id': game_id
     };
+    console.log(message);
     socket.send(JSON.stringify(message))
 }
 
