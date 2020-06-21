@@ -649,7 +649,7 @@ async def receive(websocket, path):
                     data = json.loads(message)
                     action = data.get('action')
                     if action == 'board_click':
-                        if player.id in [1, 2]:
+                        if player.id in [1, 2] or free:
                             await handle_board_click(player, data.get('row'), data.get('column'), data.get('alternate'),
                                                      data.get('hints'), free)
                     elif action == 'chat':
