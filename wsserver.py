@@ -656,7 +656,7 @@ async def receive(websocket, path):
                         if not free:
                             await handle_chat_message(player, data.get('message'))
                     elif action == 'remove':
-                        if free and player.id in [1, 2]:
+                        if free:
                             await handle_remove(player, data.get('id'))
                     elif action == 'undo':
                         if not free and player.id in [1, 2]:
