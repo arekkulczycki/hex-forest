@@ -8,6 +8,7 @@ import traceback
 from json import JSONDecodeError
 from time import time
 
+import requests
 import websockets
 from japronto import Application
 from jinja2 import Template
@@ -635,6 +636,34 @@ def position_outcome(outcomes, new_outcome):
     return outcomes
 
 
+async def handle_import_game(player, game_number):
+    message_dict = {
+        'type': 'clear',
+        'message': f''
+    }
+    await send_to_one(message_dict, player.websocket)
+    await import_lg_game(player, game_number)
+
+
+async def import_lg_game(player, game_number):
+    response = requests.get(f'https://littlegolem.net/servlet/sgf/{game_number}/game{game_number}.hsgf')
+    moves = response.text.split(';')[2:]
+    r = 0
+    c = 0
+    for move in moves:
+        moving_player = 1 if move[0] == 'W' else 2
+        if move[2:6] != 'swap':
+            c = ord(move[2]) - 98
+            r = ord(move[3]) - 98
+        message_dict = {
+            'type': 'move',
+            'move': {'player_id': moving_player, 'id': f'{r}-{c}-{moving_player}', 'cx': Cell.stone_x(r, c),
+                     'cy': Cell.stone_y(r)},
+            'message': f''
+        }
+        await send_to_one(message_dict, player.websocket)
+
+
 async def receive(websocket, path):
     free = path == '/free'
     await register(websocket, free)
@@ -675,6 +704,8 @@ async def receive(websocket, path):
                             await handle_load_game(player, data.get('game_id'))
                         else:
                             print('Player disallowed to load the game!')
+                    elif action == 'import':
+                        await handle_import_game(player, data.get('game_id'))
                     elif action == 'store':
                         if player.id in [1, 2]:
                             await handle_store_position(player, data.get('opening'), data.get('position'), data.get('result'))
@@ -729,7 +760,7 @@ def run(host):
     r.add_route('/favicon.ico', favicon)
 
     # return app
-    port = int(os.environ.get('PORT'))
+    port = int(os.environ.get('PORT', 8000))
     app.run(host, port)
 
 

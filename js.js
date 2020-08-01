@@ -195,7 +195,7 @@ function showHint(move, winner) {
 
 function clearHints() {
     $('#board').find('.cell').each((i, e) => {
-        $(e).css('fill', '#FFCF79');
+        $(e).css('fill', '');
     });
 }
 
@@ -266,6 +266,17 @@ function loadGame(game_id = null) {
     socket.send(JSON.stringify(message))
 }
 
+function lgImport(game_id = null) {
+    if (game_id === null)
+        game_id = $('#game_id').val();
+    let message = {
+        'action': 'import',
+        'game_id': game_id
+    };
+    console.log(message);
+    socket.send(JSON.stringify(message))
+}
+
 function sendUndo() {
     let message = {
         'action': 'undo'
@@ -330,6 +341,9 @@ function sendMessage() {
 }
 
 function removeStone(id) {
+    let lastMoveMarker = $('#lastMoveMarker');
+    if (lastMoveMarker.length)
+        lastMoveMarker.remove();
     $(`#${id}`).remove();
 
     setOpening();
@@ -341,6 +355,10 @@ function removeStone(id) {
 }
 
 function putStone(id, cx, cy, player_id) {
+    let lastMoveMarker = $('#lastMoveMarker');
+    if (lastMoveMarker.length)
+        lastMoveMarker.remove();
+
     let fill = player_id === 1 ? 'black' : 'white';
 
     let xmlns = 'http://www.w3.org/2000/svg';
@@ -351,8 +369,16 @@ function putStone(id, cx, cy, player_id) {
     stone.setAttributeNS(null, 'r', '11.0');
     stone.setAttributeNS(null, 'fill', fill);
     stone.setAttributeNS(null, 'onclick', `sendRemoveStone('${id}')`);
-
     $('#board').append(stone);
+
+    lastMoveMarker = document.createElementNS(xmlns,'circle');
+    lastMoveMarker.setAttributeNS(null, 'id', 'lastMoveMarker');
+    lastMoveMarker.setAttributeNS(null, 'cx', cx);
+    lastMoveMarker.setAttributeNS(null, 'cy', cy);
+    lastMoveMarker.setAttributeNS(null, 'r', '6.0');
+    lastMoveMarker.setAttributeNS(null, 'fill', 'red');
+    lastMoveMarker.setAttributeNS(null, 'onclick', `sendRemoveStone('${id}')`);
+    $('#board').append(lastMoveMarker);
 
     clearHints();
 
