@@ -650,11 +650,22 @@ async def import_lg_game(player, game_number):
     moves = response.text.split(';')[2:]
     r = 0
     c = 0
+
+    has_swap = moves[1][2:6] == 'swap'
+    if has_swap:
+        moves.pop(1)
+
+    k = 0
     for move in moves:
+        k += 1
         moving_player = 1 if move[0] == 'W' else 2
-        if move[2:6] != 'swap':
-            c = ord(move[2]) - 98
-            r = ord(move[3]) - 98
+        if k == 1 and has_swap:
+            moving_player = 1 if moving_player == 2 else 2
+            r = ord(move[2]) - 97
+            c = ord(move[3]) - 97
+        else:
+            c = ord(move[2]) - 97
+            r = ord(move[3]) - 97
         message_dict = {
             'type': 'move',
             'move': {'player_id': moving_player, 'id': f'{r}-{c}-{moving_player}', 'cx': Cell.stone_x(r, c),
