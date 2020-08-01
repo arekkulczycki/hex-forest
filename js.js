@@ -241,8 +241,10 @@ function sendStore(winningPlayerId) {
 function getAllStones() {
     let stones = [];
     $('#board').find('circle').each((i, e) => {
-        let color = $(e).attr('fill') === 'white' ? whiteColor : blackColor;
-        stones.push(`${e.id}-${color}`);
+        if (e.id !== 'lastMoveMarker') {
+            let color = $(e).attr('fill') === 'white' ? whiteColor : blackColor;
+            stones.push(`${e.id}-${color}`);
+        }
     });
     return stones;
 }
