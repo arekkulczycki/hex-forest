@@ -28,7 +28,6 @@ position = []
 free_mode = False
 
 lock = threading.Lock()
-board = Board()
 db = None
 STORE_MINIMUM = 10
 BLACK_COLOR = 1
@@ -68,7 +67,8 @@ def favicon(request):
 
 
 @ssl_decorator
-def show_board(request, mode=''):
+def show_board(request, mode='', size=13):
+    board = Board(size)
     with open('index.html') as html_file:
         template = Template(html_file.read())
         fields = []
@@ -88,6 +88,7 @@ def show_board(request, mode=''):
         games = db.load_all_games()
         template_context = {
             'version': f'{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_PATCH}',
+            'size': size,
             'rows': board.rows,
             'websocket_address': websocket_address,
             'mode': mode,
@@ -107,6 +108,10 @@ def show_free_board(request):
 @ssl_decorator
 def show_board_with_priviledges(request):
     return show_board(request, 'p')
+
+@ssl_decorator
+def show_board_19(request):
+    return show_board(request, 'free', 19)
 
 
 # This is an asynchronous handler, it spends most of the time in the event loop.
@@ -331,10 +336,10 @@ async def handle_board_click(player, r, c, alternate, hints, free=False):
 
 
 async def make_move(player, moving_player_id, r, c, free=False):
-    if board.rows[r][c].state == 0:
-        board.rows[r][c].state = moving_player_id
-    elif board.rows[r][c].state == moving_player_id:
-        board.rows[r][c].state = 0
+    # if board.rows[r][c].state == 0:
+    #     board.rows[r][c].state = moving_player_id
+    # elif board.rows[r][c].state == moving_player_id:
+    #     board.rows[r][c].state = 0
 
     if free:
         player.turn = WHITE_COLOR if player.turn == BLACK_COLOR else BLACK_COLOR
@@ -765,6 +770,7 @@ def run(host):
     r.add_route('/', show_board)
     r.add_route('/priviledges', show_board_with_priviledges)
     r.add_route('/free', show_free_board)
+    r.add_route('/free19', show_board_19)
     r.add_route('/style.css', styles)
     r.add_route('/js.js', scripts)
     r.add_route('/async', asynchronous)

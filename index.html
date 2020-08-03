@@ -10,7 +10,7 @@
 <body>
     <div class="arena">
         <div class="board-container">
-            <svg id="board" viewBox="0 0 660 397">
+            <svg id="board" {% if size == 13 %}viewBox="0 0 660 397"{% else %}viewBox="0 0 990 599"{% endif %}>
                 <defs>
                     <linearGradient id="Black" x1="1" x2="0" y1="0" y2="1">
                         <stop offset="25%" stop-color="#FFCF79" />
@@ -25,8 +25,13 @@
                         <stop offset="90%" stop-color="black" />
                     </linearGradient>
                 </defs>
-                <polygon points="15.00,4.02 225.00,367.75 435.00,4.02 645.00,367.75" style="fill:#FFFFFF;stroke:black;stroke-width:1"></polygon>
-                <polygon points="15.00,4.02 435.00,4.02 225.00,367.75 645.00,367.75" style="fill:#303030;stroke:black;stroke-width:1"></polygon>
+                {% if size == 13 %}
+                    <polygon points="15.00,4.02 225.00,367.75 435.00,4.02 645.00,367.75" style="fill:#FFFFFF;stroke:black;stroke-width:1"></polygon>
+                    <polygon points="15.00,4.02 435.00,4.02 225.00,367.75 645.00,367.75" style="fill:#303030;stroke:black;stroke-width:1"></polygon>
+                {% else %}
+                    <polygon points="15.00,4.02 315,524 615,4.02 915,524" style="fill:#FFFFFF;stroke:black;stroke-width:1"></polygon>
+                    <polygon points="15.00,4.02 615,4.02 315,524 915,524" style="fill:#303030;stroke:black;stroke-width:1"></polygon>
+                {% endif %}
                 {% for row in rows %}
                     {% set outer_loop = loop %}
                     {% for cell in row %}
