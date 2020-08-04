@@ -65,7 +65,7 @@
                 <label for="alternate">alternate color</label><input id="alternate" type="checkbox" {% if mode != 'free' %} disabled="disabled" {% else %} checked="checked" {% endif %}>
             </div>
             <div class="menu-paragraph">
-                <label for="hints">show hints</label><input id="hints" type="checkbox" {% if mode == 'free' %} checked="checked" {% else %} checked="checked" {% endif %} onchange="toggleResult()">
+                <label for="hints">show hints</label><input id="hints" type="checkbox" {% if mode != 'free' %} checked="checked" {% endif %} onchange="toggleResult()">
                 <div id="position-result" style="margin-left: 30px;" {% if mode != 'free' %} style="display: none;" {% endif %}>
                     winner:&nbsp;<span id="winner">not solved</span>
                 </div>

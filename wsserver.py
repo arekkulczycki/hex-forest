@@ -677,7 +677,11 @@ async def import_lg_game(player, game_number):
                      'cy': Cell.stone_y(r)},
             'message': f''
         }
-        await send_to_one(message_dict, player.websocket)
+        tasks = [
+            make_move(player, moving_player, r, c),
+            send_to_one(message_dict, player.websocket)
+        ]
+        await asyncio.wait(tasks)
 
 
 async def receive(websocket, path):
