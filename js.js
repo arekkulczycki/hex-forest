@@ -100,6 +100,12 @@ function connect() {
                 let cy = data.move.cy;
                 putStone(id, cx, cy, player_id);
                 break;
+            case 'mark':
+                let markId = data.move.id;
+                let MarkCx = data.move.cx;
+                let MarkCy = data.move.cy;
+                putMarker(markId, MarkCx, MarkCy);
+                break;
             case 'remove':
                 console.log(data.message);
                 removeStone(data.id);
@@ -373,7 +379,18 @@ function putStone(id, cx, cy, player_id) {
     stone.setAttributeNS(null, 'onclick', `sendRemoveStone('${id}')`);
     $('#board').append(stone);
 
-    lastMoveMarker = document.createElementNS(xmlns,'circle');
+    putMarker(id, cx, cy);
+
+    clearHints();
+
+    setOpening();
+    if (mode === 'free' && $('#hints').prop('checked'))
+        sendLoadHints();
+}
+
+function putMarker(id, cx, cy){
+    let xmlns = 'http://www.w3.org/2000/svg';
+    let lastMoveMarker = document.createElementNS(xmlns,'circle');
     lastMoveMarker.setAttributeNS(null, 'id', 'lastMoveMarker');
     lastMoveMarker.setAttributeNS(null, 'cx', cx);
     lastMoveMarker.setAttributeNS(null, 'cy', cy);
@@ -381,12 +398,6 @@ function putStone(id, cx, cy, player_id) {
     lastMoveMarker.setAttributeNS(null, 'fill', 'red');
     lastMoveMarker.setAttributeNS(null, 'onclick', `sendRemoveStone('${id}')`);
     $('#board').append(lastMoveMarker);
-
-    clearHints();
-
-    setOpening();
-    if (mode === 'free' && $('#hints').prop('checked'))
-        sendLoadHints();
 }
 
 function sendLoadHints() {

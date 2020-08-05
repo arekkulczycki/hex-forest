@@ -16,8 +16,8 @@ from jinja2 import Template
 from models import Player, Board, Cell, DynamoDB, DecimalEncoder
 
 VERSION_MAJOR = 0
-VERSION_MINOR = 0
-VERSION_PATCH = 4
+VERSION_MINOR = 1
+VERSION_PATCH = 0
 
 AWS_ACCOUNT_ID = 448756706136
 
@@ -169,21 +169,21 @@ async def register(websocket, free):
     }
     tasks.append(send_to_board(message_dict, websocket))
 
-    turn = 1
+    print(position)
     for move in position:
         split = move.split('-')
         r = int(split[0])
         c = int(split[1])
+        color = int(split[2])
 
         message_dict = {
             'type': 'move',
-            'move': {'player_id': turn, 'id': move, 'cx': Cell.stone_x(r, c), 'cy': Cell.stone_y(r)},
+            'move': {'player_id': color, 'id': move, 'cx': Cell.stone_x(r, c), 'cy': Cell.stone_y(r)},
         }
         tasks.append(send_to_one(message_dict, player.websocket))
 
-        turn = WHITE_COLOR if turn == BLACK_COLOR else BLACK_COLOR
-
-    await asyncio.wait(tasks)
+    await asyncio.wait(tasks[:-1])
+    await tasks[-1]
 
 
 async def handle_set_name(player, name):
@@ -344,10 +344,11 @@ async def make_move(player, moving_player_id, r, c, free=False):
     if free:
         player.turn = WHITE_COLOR if player.turn == BLACK_COLOR else BLACK_COLOR
     else:
-        global turn
         global position
-        position.append(f'{r}-{c}-{turn}')
-        turn = WHITE_COLOR if len(position) % 2 == 1 else BLACK_COLOR
+        position.append(f'{r}-{c}-{moving_player_id}')
+
+    global turn
+    turn = WHITE_COLOR if moving_player_id == BLACK_COLOR else BLACK_COLOR
 
     # positions = db.get_positions_for('a1,b2')
     # print(positions)
@@ -390,12 +391,27 @@ async def handle_undo(player):
     global position
     if position:
         id = position.pop()
-        message_dict = {
+        remove_message_dict = {
             'type': 'remove',
             'id': id,
             'message': f'Player {player.id} has clicked undo'
         }
-        await send_to_board(message_dict, player.websocket)
+        tasks = [
+            send_to_board(remove_message_dict, player.websocket)
+        ]
+
+        if position:
+            move = position[-1]
+            split = move.split('-')
+            r = int(split[0])
+            c = int(split[1])
+            marker_message_dict = {
+                'type': 'mark',
+                'move': { 'id': move, 'cx': Cell.stone_x(r, c), 'cy': Cell.stone_y(r)},
+            }
+            tasks.append(send_to_board(marker_message_dict, player.websocket))
+
+        await asyncio.wait(tasks)
 
 
 async def handle_clear(player):
@@ -642,6 +658,9 @@ def position_outcome(outcomes, new_outcome):
 
 
 async def handle_import_game(player, game_number, free):
+    global position
+    position = []
+
     message_dict = {
         'type': 'clear',
         'message': f''
@@ -664,11 +683,13 @@ async def import_lg_game(player, game_number, free):
         moves.pop(1)
 
     k = 0
+    print(moves)
     for move in moves:
         k += 1
-        moving_player = 1 if move[0] == 'W' else 2
+        moving_player = WHITE_COLOR if move[0] == 'W' else BLACK_COLOR
+        if has_swap:  # there is a blunder in LG files...
+            moving_player = WHITE_COLOR if moving_player == BLACK_COLOR else BLACK_COLOR
         if k == 1 and has_swap:
-            moving_player = 1 if moving_player == 2 else 2
             r = ord(move[2]) - 97
             c = ord(move[3]) - 97
         else:
