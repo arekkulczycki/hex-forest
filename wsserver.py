@@ -641,16 +641,19 @@ def position_outcome(outcomes, new_outcome):
     return outcomes
 
 
-async def handle_import_game(player, game_number):
+async def handle_import_game(player, game_number, free):
     message_dict = {
         'type': 'clear',
         'message': f''
     }
-    await send_to_one(message_dict, player.websocket)
-    await import_lg_game(player, game_number)
+    if free:
+        await send_to_one(message_dict, player.websocket)
+    else:
+        await send_to_board(message_dict, player.websocket)
+    await import_lg_game(player, game_number, free)
 
 
-async def import_lg_game(player, game_number):
+async def import_lg_game(player, game_number, free):
     response = requests.get(f'https://littlegolem.net/servlet/sgf/{game_number}/game{game_number}.hsgf')
     moves = response.text.split(';')[2:]
     r = 0
@@ -678,14 +681,17 @@ async def import_lg_game(player, game_number):
             'message': f''
         }
         tasks = [
-            make_move(player, moving_player, r, c),
-            send_to_one(message_dict, player.websocket)
+            make_move(player, moving_player, r, c)
         ]
+        if free:
+            tasks.append(send_to_one(message_dict, player.websocket))
+        else:
+            tasks.append(send_to_board(message_dict, player.websocket))
         await asyncio.wait(tasks)
 
 
 async def receive(websocket, path):
-    free = path == '/free'
+    free = '/free' in path
     await register(websocket, free)
     try:
         async for message in websocket:
@@ -725,7 +731,7 @@ async def receive(websocket, path):
                         else:
                             print('Player disallowed to load the game!')
                     elif action == 'import':
-                        await handle_import_game(player, data.get('game_id'))
+                        await handle_import_game(player, data.get('game_id'), free)
                     elif action == 'store':
                         if player.id in [1, 2]:
                             await handle_store_position(player, data.get('opening'), data.get('position'), data.get('result'))
