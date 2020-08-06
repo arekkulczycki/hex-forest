@@ -34,11 +34,12 @@ function connect() {
                 for (let i=0; i<data.players.length; i++) {
                     playerId = data.players[i].id;
                     playerName = data.players[i].name;
-                    if (playerName === '__name__')
+                    if (playerName === '__name__') {
                         playerName = Cookies.get('hex_forest_name');
-                    if (playerId === 1 || playerId === 2)
+                    }
+                    if (playerId === 1 || playerId === 2) {
                         assignPlayer(playerId, playerName);
-                    else {
+                    } else {
                         if ($(`#${playerId}`).length === 0) {
                             let spectators = $('.spectators');
                             let spectator = `<div id="${playerId}" class="spectator-name">${playerName}</div>`;
@@ -50,9 +51,9 @@ function connect() {
             case 'playerIn':
                 playerId = data.player_id;
                 playerName = data.player_name;
-                if (playerId === 1 || playerId === 2)
+                if (playerId === 1 || playerId === 2) {
                     assignPlayer(playerId, playerName);
-                else {
+                } else {
                     if ($(`#${playerId}`).length === 0) {
                         let spectators = $('.spectators');
                         let spectator = `<div id="${playerId}" class="spectator-name">${playerName}</div>`;
@@ -67,12 +68,13 @@ function connect() {
                 playerId = data.player_id;
                 playerName = data.player_name;
                 console.log(playerId, playerName);
-                if (data.player_id === 1)
+                if (data.player_id === 1) {
                     $('#player_1_box_text').html(playerName);
-                else if (data.player_id === 2)
+                } else if (data.player_id === 2) {
                     $('#player_2_box_text').html(playerName);
-                else
+                } else {
                     $(`#${playerId}`).html(playerName);
+                }
                 break;
             case 'takeSpot':
                 let oldId = data.player_old_id;
@@ -88,10 +90,11 @@ function connect() {
                 assignPlayer(playerId, playerName);
                 break;
             case 'leaveSpot':
-                if (data.spot === 1)
+                if (data.spot === 1) {
                     $('#player_1_box_text').html('click to play');
-                else if (data.spot === 2)
+                } else if (data.spot === 2) {
                     $('#player_2_box_text').html('click to play');
+                }
                 break;
             case 'move':
                 let player_id = data.move.player_id;
@@ -162,10 +165,11 @@ function handleMessage(player_id, message) {
 
 function toggleResult() {
     let result = $('#position-result');
-    if ($('#hints').prop('checked'))
+    if ($('#hints').prop('checked')) {
         result.show();
-    else
+    } else {
         result.hide();
+    }
 }
 
 function joinBoard(spot) {
@@ -191,12 +195,13 @@ function showHint(move, winner) {
     let cell_id = coordsToId(move);
     let cell = $(`#${cell_id}`);
 
-    if (winner === '0')
+    if (winner === '0') {
         cell.css('fill', 'url(#Mixed)');
-    else if (winner === blackColor)
+    } else if (winner === blackColor) {
         cell.css('fill', 'url(#Black)');
-    else if (winner === whiteColor)
+    } else if (winner === whiteColor) {
         cell.css('fill', 'url(#White)');
+    }
 }
 
 function clearHints() {
@@ -210,10 +215,11 @@ function assignPlayer(player_id, player_name) {
 }
 
 function removePlayer(player_id, player_name) {
-    if (player_id === 1 || player_id === 2)
+    if (player_id === 1 || player_id === 2) {
         $(`#player_${player_id}_box_text`).html('click to play');
-    else
+    } else {
         $(`#${player_id}`).remove();
+    }
 }
 
 function boardClick(row, column) {
@@ -264,8 +270,9 @@ function saveGame() {
 }
 
 function loadGame(game_id = null) {
-    if (game_id === null)
+    if (game_id === null) {
         game_id = $('#game_id').val();
+    }
     let message = {
         'action': 'load',
         'game_id': game_id
@@ -275,8 +282,9 @@ function loadGame(game_id = null) {
 }
 
 function lgImport(game_id = null) {
-    if (game_id === null)
+    if (game_id === null) {
         game_id = $('#game_id').val();
+    }
     let message = {
         'action': 'import',
         'game_id': game_id
@@ -303,6 +311,7 @@ function sendClearBoard() {
     let message = {
         'action': 'clear'
     };
+    console.log('clear!!!');
     socket.send(JSON.stringify(message));
 }
 
@@ -350,26 +359,29 @@ function sendMessage() {
 
 function removeStone(id) {
     let lastMoveMarker = $('#lastMoveMarker');
-    if (lastMoveMarker.length)
+    if (lastMoveMarker.length) {
         lastMoveMarker.remove();
+    }
     $(`#${id}`).remove();
 
     setOpening();
 
     clearHints();
 
-    if ($('#hints').prop('checked'))
+    if ($('#hints').prop('checked')) {
         sendLoadHints();
+    }
 }
 
 function putStone(id, cx, cy, player_id) {
     let lastMoveMarker = $('#lastMoveMarker');
-    if (lastMoveMarker.length)
+    if (lastMoveMarker.length) {
         lastMoveMarker.remove();
+    }
 
     let fill = player_id === 1 ? 'black' : 'white';
 
-    let xmlns = 'http://www.w3.org/2000/svg';
+    let xmlns = $('#xmlns').val();
     let stone = document.createElementNS(xmlns,'circle');
     stone.setAttributeNS(null, 'id', id);
     stone.setAttributeNS(null, 'cx', cx);
@@ -384,12 +396,13 @@ function putStone(id, cx, cy, player_id) {
     clearHints();
 
     setOpening();
-    if (mode === 'free' && $('#hints').prop('checked'))
+    if (mode === 'free' && $('#hints').prop('checked')) {
         sendLoadHints();
+    }
 }
 
 function putMarker(id, cx, cy){
-    let xmlns = 'http://www.w3.org/2000/svg';
+    let xmlns = $('#xmlns').val();
     let lastMoveMarker = document.createElementNS(xmlns,'circle');
     lastMoveMarker.setAttributeNS(null, 'id', 'lastMoveMarker');
     lastMoveMarker.setAttributeNS(null, 'cx', cx);
@@ -429,14 +442,12 @@ function setOpening() {
 
         let first = coordsToId(stones[0]);
         $('#opening-decoded').val(first);
-    }
-    else if (stones.length < storeMinimum) {
+    } else if (stones.length < storeMinimum) {
         $('#swap').prop('disabled', 'disabled');
 
         $('#storeWhite').prop('disabled', 'disabled');
         $('#storeBlack').prop('disabled', 'disabled');
-    }
-    else {
+    } else {
         $('#swap').prop('disabled', 'disabled');
 
         $('#storeWhite').prop('disabled', false);
@@ -446,8 +457,9 @@ function setOpening() {
 
 function coordsToId(coords) {
     let split = coords.split('-');
-    if (split.length < 2)
+    if (split.length < 2) {
         return null;
+    }
     let first = String.fromCharCode(65 + parseInt(split[1])).toLowerCase();
     return `${first}${parseInt(split[0]) + 1}`
 }

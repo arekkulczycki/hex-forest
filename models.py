@@ -227,8 +227,8 @@ class DynamoDB:
             raise Exception(f'move cannot be handled: {move}')
         return int(split[0]) * 100 + int(split[1])
 
-    @staticmethod
-    def position_move_bigger(move_a, move_b):
+    @classmethod
+    def position_move_bigger(cls, move_a, move_b):
         split_a = move_a.split('-')
         split_b = move_b.split('-')
         return int(split_a[0]) * 100 + int(split_a[1]) > int(split_b[0]) * 100 + int(split_b[1])
