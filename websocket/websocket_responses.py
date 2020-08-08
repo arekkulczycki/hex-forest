@@ -588,7 +588,7 @@ class WebsocketCommunicator:
                 'message': f''
             }
             tasks = [
-                self.make_move(player, moving_player, r, c)
+                self.make_move(player, moving_player, r, c, free)
             ]
             if free:
                 tasks.append(self.send_to_one(message_dict, player.websocket))
