@@ -72,7 +72,8 @@ class WebsocketCommunicator:
                             else:
                                 print('Player disallowed to load the game!')
                         elif action == 'import':
-                            await self.handle_import_game(player, data.get('game_id'), free)
+                            if free or player.id in [1, 2]:
+                                await self.handle_import_game(player, data.get('game_id'), free)
                         elif action == 'store':
                             if player.id in [1, 2]:
                                 await self.handle_store_position(player, data.get('opening'), data.get('position'), data.get('result'))
@@ -570,21 +571,24 @@ class WebsocketCommunicator:
     async def import_lg_game(self, player, game_number, free):
         response = requests.get(f'https://littlegolem.net/servlet/sgf/{game_number}/game{game_number}.hsgf')
         moves = response.text.split(';')[2:]
-        r = 0
-        c = 0
+
+        is_over = moves[-1][2:8] == 'resign'
+        if is_over:
+            moves.pop(-1)
 
         has_swap = moves[1][2:6] == 'swap'
         if has_swap:
             moves.pop(1)
 
         k = 0
-        print(moves)
         for move in moves:
             k += 1
-            moving_player = WHITE_COLOR if move[0] == 'W' else BLACK_COLOR
-            if has_swap:  # there is a blunder in LG files...
-                moving_player = WHITE_COLOR if moving_player == BLACK_COLOR else BLACK_COLOR
+            moving_player = WHITE_COLOR if \
+                (move[0] == 'W' and not has_swap) or \
+                (move[0] == 'B' and has_swap) \
+                else BLACK_COLOR
             if k == 1 and has_swap:
+                moving_player = WHITE_COLOR if moving_player == BLACK_COLOR else BLACK_COLOR
                 r = ord(move[2]) - 97
                 c = ord(move[3]) - 97
             else:
