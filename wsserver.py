@@ -52,6 +52,7 @@ def run(host, db_connection):
     r.add_route('/', http_communicator.show_board)
     r.add_route('/priviledges', http_communicator.show_board_with_priviledges)
     r.add_route('/free', http_communicator.show_free_board)
+    r.add_route('/free11', http_communicator.show_board_11)
     r.add_route('/free19', http_communicator.show_board_19)
     r.add_route('/style.css', http_communicator.styles)
     r.add_route('/js.js', http_communicator.scripts)

@@ -74,5 +74,9 @@ class HttpCommunicator:
         return self.show_board(request, 'p')
 
     @ssl_decorator
+    def show_board_11(self, request):
+        return self.show_board(request, 'free', 11)
+
+    @ssl_decorator
     def show_board_19(self, request):
         return self.show_board(request, 'free', 19)

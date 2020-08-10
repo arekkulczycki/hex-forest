@@ -21,6 +21,7 @@ class Player:
         self.name = name
         self.present = present
         self.turn = 1
+        self.position = []
 
     def __str__(self):
         return str(self.id) if self else '...'

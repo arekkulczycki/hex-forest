@@ -55,8 +55,8 @@ class WebsocketCommunicator:
                             if free:
                                 await self.handle_remove(player, data.get('id'))
                         elif action == 'undo':
-                            if not free and player.id in [1, 2]:
-                                await self.handle_undo(player)
+                            if free or player.id in [1, 2]:
+                                await self.handle_undo(player, free)
                         elif action == 'swap':
                             if player.id in [1, 2]:
                                 await self.handle_swap(player, free)
@@ -300,6 +300,7 @@ class WebsocketCommunicator:
 
         if free:
             player.turn = WHITE_COLOR if player.turn == BLACK_COLOR else BLACK_COLOR
+            player.position.append(f'{r}-{c}-{moving_player_id}')
         else:
             global position
             position.append(f'{r}-{c}-{moving_player_id}')
@@ -331,6 +332,8 @@ class WebsocketCommunicator:
         await self.send_to_board(message_dict, player.websocket)
 
     async def handle_remove(self, player, id):
+        player.position.remove(id)
+
         message_dict = {
             'type': 'remove',
             'id': id,
@@ -338,13 +341,19 @@ class WebsocketCommunicator:
         }
         await self.send_to_board(message_dict, player.websocket)
 
-    async def handle_undo(self, player):
+    async def handle_undo(self, player, free):
+        # TODO: get rid of stupid turn
         global turn
         turn = BLACK_COLOR if turn == WHITE_COLOR else WHITE_COLOR
 
-        global position
-        if position:
-            id = position.pop()
+        if free:
+            board_position = player.position
+        else:
+            global position
+            board_position = position
+
+        if board_position:
+            id = board_position.pop()
             remove_message_dict = {
                 'type': 'remove',
                 'id': id,
@@ -354,8 +363,8 @@ class WebsocketCommunicator:
                 self.send_to_board(remove_message_dict, player.websocket)
             ]
 
-            if position:
-                move = position[-1]
+            if board_position:
+                move = board_position[-1]
                 split = move.split('-')
                 r = int(split[0])
                 c = int(split[1])

@@ -10,7 +10,7 @@
 <body>
     <div class="arena">
         <div class="board-container">
-            <svg id="board" {% if size == 13 %}viewBox="0 0 660 397"{% else %}viewBox="0 0 990 599"{% endif %}>
+            <svg id="board" {% if size == 13 %}viewBox="0 0 660 397" {% elif size == 11 %}viewBox="0 0 575 360"{% else %}viewBox="0 0 990 599"{% endif %}>
                 <defs>
                     <linearGradient id="Black" x1="1" x2="0" y1="0" y2="1">
                         <stop offset="25%" stop-color="#FFCF79" />
@@ -28,6 +28,9 @@
                 {% if size == 13 %}
                     <polygon points="15.00,4.02 225.00,367.75 435.00,4.02 645.00,367.75" style="fill:#FFFFFF;stroke:black;stroke-width:1"></polygon>
                     <polygon points="15.00,4.02 435.00,4.02 225.00,367.75 645.00,367.75" style="fill:#303030;stroke:black;stroke-width:1"></polygon>
+                {% elif size == 11 %}
+                    <polygon points="15.00,4.02 194,316 375.00,4.02 556.00,316" style="fill:#FFFFFF;stroke:black;stroke-width:1"></polygon>
+                    <polygon points="15.00,4.02 375.00,4.02 194,316 556.00,316" style="fill:#303030;stroke:black;stroke-width:1"></polygon>
                 {% else %}
                     <polygon points="15.00,4.02 315,524 615,4.02 915,524" style="fill:#FFFFFF;stroke:black;stroke-width:1"></polygon>
                     <polygon points="15.00,4.02 615,4.02 315,524 915,524" style="fill:#303030;stroke:black;stroke-width:1"></polygon>
@@ -45,7 +48,7 @@
                 <label for="nickname">your name:&nbsp;</label><input id="nickname" type="text" placeholder="your name" style="width: 130px;"><input type="button" value="send" onclick="changeName()">
             </div>
             <div class="menu-paragraph">
-                <input type="button" value="undo" onclick="sendUndo()" {% if mode == 'free' %} disabled="disabled" {% endif %}>
+                <input type="button" value="undo" onclick="sendUndo()">
                 <input id="swap" type="button" value="swap" onclick="sendSwap()">
                 <input type="button" value="clear board" onclick="sendClearBoard()">
                 <input type="button" value="save game" onclick="saveGame()" {% if mode == 'free' %} disabled="disabled" {% endif %}>
