@@ -9,7 +9,7 @@ from models import Board
 
 VERSION_MAJOR = 0
 VERSION_MINOR = 2
-VERSION_PATCH = 3
+VERSION_PATCH = 4
 
 
 class HttpCommunicator:

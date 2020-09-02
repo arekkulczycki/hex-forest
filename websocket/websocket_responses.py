@@ -65,7 +65,7 @@ class WebsocketCommunicator:
                                 await self.handle_clear(player, is_analysis)
                         elif action == 'save':
                             if is_analysis or player.id in [1, 2]:
-                                await self.handle_save_game(player, data.get('game_id'))
+                                await self.handle_save_game(player, data.get('game_id'), is_analysis)
                         elif action == 'load':
                             if is_analysis or player.id in [1, 2]:
                                 await self.handle_load_game(player, data.get('game_id'))
@@ -420,7 +420,7 @@ class WebsocketCommunicator:
         }
         await self.send_to_board(message_dict, player.websocket)
 
-    async def handle_save_game(self, player, game_id):
+    async def handle_save_game(self, player, game_id, is_analysis=False):
         global position
         if not game_id:
             game_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=16))
@@ -430,9 +430,11 @@ class WebsocketCommunicator:
             'game_id': game_id,
             'message': f'Player {player.id} has saved the game'
         }
+
+        position_to_save = player.position if is_analysis else position
         tasks = [
             self.send_to_board(message_dict, player.websocket),
-            self.db.save_game_async(game_id, position, players)
+            self.db.save_game_async(game_id, position_to_save, players)
         ]
         await asyncio.wait(tasks)
 
@@ -479,10 +481,13 @@ class WebsocketCommunicator:
                 print(e)
                 break
             except Exception as e:
+                print(e)
                 traceback.print_exc()
             turn = WHITE_COLOR if turn == BLACK_COLOR else BLACK_COLOR
             player.turn = turn
-        await asyncio.wait(tasks)
+
+        if tasks:
+            await asyncio.wait(tasks)
 
     async def handle_store_position(self, player, opening, position, result):
         if len(position) < STORE_MINIMUM:
