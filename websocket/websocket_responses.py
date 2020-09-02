@@ -64,7 +64,7 @@ class WebsocketCommunicator:
                             if is_analysis or player.id in [1, 2]:
                                 await self.handle_clear(player, is_analysis)
                         elif action == 'save':
-                            if not is_analysis:
+                            if is_analysis or player.id in [1, 2]:
                                 await self.handle_save_game(player, data.get('game_id'))
                         elif action == 'load':
                             if is_analysis or player.id in [1, 2]:

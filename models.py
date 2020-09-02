@@ -239,12 +239,14 @@ class DynamoDB:
 
     def save_game(self, game_id, position, players):
         table = self.client.Table('Games')
+        player_1_name = players.get(1).name if players.get(1) else ''
+        player_2_name = players.get(2).name if players.get(2) else ''
         item = {
             'game_id': game_id,
             'timestamp': str(int(time())),
             'position': position,
-            'player_1_name': players.get(1).name,
-            'player_2_name': players.get(2).name
+            'player_1_name': player_1_name,
+            'player_2_name': player_2_name
         }
         response = table.put_item(
             Item=item
