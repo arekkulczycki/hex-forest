@@ -67,7 +67,7 @@ class WebsocketCommunicator:
                             if not is_analysis:
                                 await self.handle_save_game(player, data.get('game_id'))
                         elif action == 'load':
-                            if player.id in [1, 2]:
+                            if is_analysis or player.id in [1, 2]:
                                 await self.handle_load_game(player, data.get('game_id'))
                             else:
                                 print('Player disallowed to load the game!')
