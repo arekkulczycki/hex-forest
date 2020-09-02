@@ -237,6 +237,13 @@ function boardClick(row, column) {
     socket.send(JSON.stringify(message))
 }
 
+function boardHover(id) {
+    $('#coords').html(id);
+    setTimeout(() => {
+        $('#coords').html('');
+    }, 2000);
+}
+
 function sendStore(winningPlayerId) {
     $('#storeWhite').prop('disabled', 'disabled');
     $('#storeBlack').prop('disabled', 'disabled');
@@ -305,6 +312,7 @@ function sendUndo() {
 }
 
 function sendSwap() {
+    console.log('here')
     let message = {
         'action': 'swap'
     };
@@ -380,6 +388,12 @@ function removeStone(id) {
     if ($('#hints').prop('checked')) {
         sendLoadHints();
     }
+
+    if (getAllStones().length === 1) {
+        $(`#swap`).css('display', 'block');
+    } else {
+        $(`#swap`).css('display', 'none');
+    }
 }
 
 function putStone(id, cx, cy, player_id) {
@@ -407,6 +421,12 @@ function putStone(id, cx, cy, player_id) {
     setOpening();
     if (mode === 'free' && $('#hints').prop('checked')) {
         sendLoadHints();
+    }
+
+    if (getAllStones().length === 1) {
+        $(`#swap`).css('display', 'block');
+    } else {
+        $(`#swap`).css('display', 'none');
     }
 }
 

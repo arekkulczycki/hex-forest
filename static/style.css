@@ -93,7 +93,7 @@ body {
     right: 2vw;
 }
 .over-board div {
-    padding: 10px;
+    padding: 1vw;
 }
 .menu-container {
     width: 100%;
@@ -153,4 +153,9 @@ body {
 }
 .cell:hover {
     fill: #efc27d;
+}
+#coords {
+    font-size: 36px;
+    font-weight: bold;
+    text-align: center;
 }

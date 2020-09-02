@@ -135,7 +135,6 @@ class WebsocketCommunicator:
         }
         tasks.append(self.send_to_board(message_dict, websocket))
 
-        print(position)
         for move in position:
             split = move.split('-')
             r = int(split[0])
@@ -409,6 +408,7 @@ class WebsocketCommunicator:
         player_2 = players.get(2)
         if not player_1 or not player_2:
             return
+
         player_1.id = 2
         player_2.id = 1
         players[1] = player_2

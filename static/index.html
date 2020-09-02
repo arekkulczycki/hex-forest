@@ -14,8 +14,13 @@
                 <div>
                     <input type="button" class="button" value="undo" onclick="sendUndo()">
                 </div>
+                {% if mode != 'analysis' %}
                 <div>
                     <input id="swap" type="button" class="button" value="swap" onclick="sendSwap()">
+                </div>
+                {% endif %}
+                <div id="coords">
+
                 </div>
             </div>
             <svg id="board" {% if size == 13 %}viewBox="0 0 660 397" {% elif size == 11 %}viewBox="0 0 575 360"{% else %}viewBox="0 0 990 599"{% endif %}>
@@ -46,7 +51,7 @@
                 {% for row in rows %}
                     {% set outer_loop = loop %}
                     {% for cell in row %}
-                        <polygon id="{{ cell.id }}" points="{{ cell.points }}" class="cell" onclick="boardClick({{ outer_loop.index0 }}, {{ loop.index0 }})"></polygon>
+                        <polygon id="{{ cell.id }}" points="{{ cell.points }}" class="cell" onmouseover="boardHover('{{ cell.id }}')" onclick="boardClick({{ outer_loop.index0 }}, {{ loop.index0 }})"></polygon>
                     {% endfor %}
                 {% endfor %}
             </svg>
