@@ -80,6 +80,7 @@ body {
     width: 10vw;
     height: 3vw;
     margin: 0.2vw;
+    font-size: 1.2vw;
 }
 
 .board-container {
@@ -155,7 +156,7 @@ body {
     fill: #efc27d;
 }
 #coords {
-    font-size: 36px;
+    font-size: 2vw;
     font-weight: bold;
     text-align: center;
 }
