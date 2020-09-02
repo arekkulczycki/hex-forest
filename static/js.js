@@ -5,6 +5,7 @@ const blackColor = script.getAttribute('black-color');
 const whiteColor = script.getAttribute('white-color');
 const storeMinimum = script.getAttribute('store-minimum');
 var active = false;
+var timeout = null;
 
 function connect() {
     let wsAddress = script.getAttribute('ws-address');
@@ -239,7 +240,11 @@ function boardClick(row, column) {
 
 function boardHover(id) {
     $('#coords').html(id);
-    setTimeout(() => {
+    if (timeout != null) {
+        clearTimeout(timeout);
+    }
+
+    timeout = setTimeout(() => {
         $('#coords').html('');
     }, 2000);
 }
