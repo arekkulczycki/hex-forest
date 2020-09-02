@@ -4,6 +4,7 @@ const mode = script.getAttribute('mode');
 const blackColor = script.getAttribute('black-color');
 const whiteColor = script.getAttribute('white-color');
 const storeMinimum = script.getAttribute('store-minimum');
+var active = false;
 
 function connect() {
     let wsAddress = script.getAttribute('ws-address');
@@ -87,6 +88,7 @@ function connect() {
                 } else {
                     removePlayer(oldId);
                 }
+                active = true;
                 assignPlayer(playerId, playerName);
                 break;
             case 'leaveSpot':
@@ -157,10 +159,10 @@ function connect() {
 connect();
 
 function handleMessage(player_id, message) {
-    let message_block = `<div class="message message_${player_id}">${message}</div>`;
+    let message_block = `<div class="message message_${player_id}">>&nbsp;${message}</div>`;
     let chat = $('#chat');
     chat.append(message_block);
-    chat.animate({scrollTop: chat.height()}, 500);
+    chat.animate({scrollTop: chat.prop('scrollHeight')}, 750);
 }
 
 function toggleResult() {
@@ -223,11 +225,13 @@ function removePlayer(player_id, player_name) {
 }
 
 function boardClick(row, column) {
+    let color = $('#color_alternate').prop('checked') ? 'natural' :
+        ($('#color_black').prop('checked') ? 'black' : 'white');
     let message = {
         'action': 'board_click',
         'row': row,
         'column': column,
-        'alternate': $('#alternate').prop('checked'),
+        'color': color,
         'hints': $('#hints').prop('checked')
     };
     socket.send(JSON.stringify(message))
@@ -347,6 +351,11 @@ function trySendMessage(e) {
 }
 
 function sendMessage() {
+    if (!active) {
+        alert('Only active players can write messages.');
+        return;
+    }
+
     let messageBox = $('#message');
     let message = {
         'action': 'chat',
@@ -487,4 +496,20 @@ function kickPlayer(player_id) {
         'player_id': player_id
     };
     socket.send(JSON.stringify(message))
+}
+
+function toggleColor(type) {
+    let a = $('#color_alternate');
+    let b = $('#color_black');
+    let w = $('#color_white');
+    if (type === 0){
+        b.prop('checked', false);
+        w.prop('checked', false);
+    } else if (type === 1){
+        a.prop('checked', false);
+        w.prop('checked', false);
+    } else {
+        a.prop('checked', false);
+        b.prop('checked', false);
+    }
 }

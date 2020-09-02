@@ -33,6 +33,11 @@ class HttpCommunicator:
             return request.Response(body=favicon.read(), mime_type='image/png')
 
     @ssl_decorator
+    def wood_pattern(self, request):
+        with open('static/wood-grain.png', 'rb') as favicon:
+            return request.Response(body=favicon.read(), mime_type='image/png')
+
+    @ssl_decorator
     def show_board(self, request, mode='', size=13):
         board = Board(size)
         with open('static/index.html') as html_file:
@@ -67,7 +72,7 @@ class HttpCommunicator:
 
     @ssl_decorator
     def show_free_board(self, request):
-        return self.show_board(request, 'free')
+        return self.show_board(request, 'analysis')
 
     @ssl_decorator
     def show_board_with_priviledges(self, request):
@@ -75,8 +80,8 @@ class HttpCommunicator:
 
     @ssl_decorator
     def show_board_11(self, request):
-        return self.show_board(request, 'free', 11)
+        return self.show_board(request, 'analysis', 11)
 
     @ssl_decorator
     def show_board_19(self, request):
-        return self.show_board(request, 'free', 19)
+        return self.show_board(request, 'analysis', 19)

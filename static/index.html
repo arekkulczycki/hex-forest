@@ -10,6 +10,14 @@
 <body>
     <div class="arena">
         <div class="board-container">
+            <div class="over-board">
+                <div>
+                    <input type="button" class="button" value="undo" onclick="sendUndo()">
+                </div>
+                <div>
+                    <input id="swap" type="button" class="button" value="swap" onclick="sendSwap()">
+                </div>
+            </div>
             <svg id="board" {% if size == 13 %}viewBox="0 0 660 397" {% elif size == 11 %}viewBox="0 0 575 360"{% else %}viewBox="0 0 990 599"{% endif %}>
                 <defs>
                     <linearGradient id="Black" x1="1" x2="0" y1="0" y2="1">
@@ -45,34 +53,42 @@
         </div>
         <div class="menu-container">
             <div class="menu-paragraph">
-                <label for="nickname">your name:&nbsp;</label><input id="nickname" type="text" placeholder="your name" style="width: 130px;"><input type="button" value="send" onclick="changeName()">
+                <label for="nickname"></label><input id="nickname" type="text" class="input" placeholder="your name"><input type="button" class="button" value="set" onclick="changeName()">
             </div>
             <div class="menu-paragraph">
-                <input type="button" value="undo" onclick="sendUndo()">
-                <input id="swap" type="button" value="swap" onclick="sendSwap()">
-                <input type="button" value="clear board" onclick="sendClearBoard()">
-                <input type="button" value="save game" onclick="saveGame()" {% if mode == 'free' %} disabled="disabled" {% endif %}>
+                <input type="button" class="button" value="clear board" onclick="sendClearBoard()">
             </div>
             <div class="menu-paragraph">
-                <input type="button" value="load game" onclick="loadGame()"><input type="button" value="import from LG" onclick="lgImport()">
-                <input id="game_id" type="text" placeholder="game id">
+                <input type="button" class="button" value="save game" onclick="saveGame()" {% if mode == 'analysis' %} disabled="disabled" {% endif %}>
+                <input type="button" class="button" value="load game" onclick="loadGame()">
             </div>
             <div class="menu-paragraph">
-                <input id="storeWhite" type="button" value="store as white win" onclick="sendStore(2)" disabled="disabled">
-                <input id="storeBlack" type="button" value="store as black win" onclick="sendStore(1)" disabled="disabled">
+                <input type="button" class="button" value="import from LG" onclick="lgImport()">
+                <input id="game_id" type="text" class="input" placeholder="game id">
+            </div>
+            <div class="menu-paragraph" style="display: none;">
+                <label for="opening-decoded">opening:&nbsp;</label><input id="opening-decoded" type="text" class="input" disabled="disabled">
+            </div>
+            {% if mode == 'analysis' %}
+            <div class="menu-paragraph">
+                <span id="color_title" style="margin-right: 20px;">stone color:</span>
+                    <input id="color_alternate" type="checkbox" onclick="toggleColor(0)" checked="checked"><label for="color_alternate" style="margin-right: 20px;">natural game order</label>
+                    <input id="color_black" type="checkbox" onclick="toggleColor(1)"><label for="color_black" style="margin-right: 20px;">black</label>
+                    <input id="color_white" type="checkbox" onclick="toggleColor(2)"><label for="color_white" style="margin-right: 20px;">white</label>
+            </div>
+            {% endif %}
+            {% if mode == 'analysis' %}
+            <div class="menu-paragraph">
+                <input id="storeWhite" type="button" class="button" value="store as white win" onclick="sendStore(2)" disabled="disabled">
+                <input id="storeBlack" type="button" class="button" value="store as black win" onclick="sendStore(1)" disabled="disabled">
             </div>
             <div class="menu-paragraph">
-                <label for="opening-decoded">opening:&nbsp;</label><input id="opening-decoded" type="text" disabled="disabled">
-            </div>
-            <div class="menu-paragraph">
-                <label for="alternate">alternate color</label><input id="alternate" type="checkbox" {% if mode != 'free' %} disabled="disabled" {% else %} checked="checked" {% endif %}>
-            </div>
-            <div class="menu-paragraph">
-                <label for="hints">show hints</label><input id="hints" type="checkbox" {% if mode != 'free' %} checked="checked" {% endif %} onchange="toggleResult()">
-                <div id="position-result" style="margin-left: 30px;" {% if mode != 'free' %} style="display: none;" {% endif %}>
+                <label for="hints">show hints</label><input id="hints" type="checkbox" {% if mode != 'analysis' %} checked="checked" {% endif %} onchange="toggleResult()">
+                <div id="position-result" style="margin-left: 30px;" {% if mode != 'analysis' %} style="display: none;" {% endif %}>
                     winner:&nbsp;<span id="winner">not solved</span>
                 </div>
             </div>
+            {% endif %}
             <div class="menu-paragraph">
                 <div id="player_1_box" class="player_box message_1">
                     <img id="player_1_active" src="favicon.ico" alt="" style="width: 20px; float: left; padding-right: 10px;" {% if mode == 'p' %} onclick="kickPlayer(1)" {% endif %}>
@@ -90,8 +106,12 @@
             <div id="chat" class="chat">
             </div>
             <div>
-                <textarea id="message" rows="3" cols="50" onkeypress="trySendMessage()"></textarea>
-                <input type="button" value="send" onclick="sendMessage()" {% if mode == 'free' %} disabled="disabled" {% endif %}>
+                <div>
+                    <textarea id="message" rows="3" onkeypress="trySendMessage()"></textarea>
+                </div>
+                <div>
+                    <input type="button" class="button" value="send" onclick="sendMessage()" {% if mode == 'analysis' %} disabled="disabled" {% endif %}>
+                </div>
             </div>
             <div class="menu-paragraph-big">
                 spectators:

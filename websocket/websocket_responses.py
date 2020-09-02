@@ -32,11 +32,11 @@ class WebsocketCommunicator:
         self.db = db
 
     async def receive(self, websocket, path):
-        free = '/free' in path
-        await self.register(websocket, free)
+        is_analysis = '/analysis' in path
+        await self.register(websocket, is_analysis)
         try:
             async for message in websocket:
-                if free:
+                if is_analysis:
                     player = free_clients.get(websocket)
                 else:
                     player = clients.get(websocket)
@@ -45,26 +45,26 @@ class WebsocketCommunicator:
                         data = json.loads(message)
                         action = data.get('action')
                         if action == 'board_click':
-                            if player.id in [1, 2] or free:
-                                await self.handle_board_click(player, data.get('row'), data.get('column'), data.get('alternate'),
-                                                         data.get('hints'), free)
+                            if player.id in [1, 2] or is_analysis:
+                                await self.handle_board_click(player, data.get('row'), data.get('column'), data.get('color'),
+                                                         data.get('hints'), is_analysis)
                         elif action == 'chat':
-                            if not free:
+                            if player.id in [1, 2] and not is_analysis:
                                 await self.handle_chat_message(player, data.get('message'))
                         elif action == 'remove':
-                            if free:
+                            if is_analysis:
                                 await self.handle_remove(player, data.get('id'))
                         elif action == 'undo':
-                            if free or player.id in [1, 2]:
-                                await self.handle_undo(player, free)
+                            if is_analysis or player.id in [1, 2]:
+                                await self.handle_undo(player, is_analysis)
                         elif action == 'swap':
                             if player.id in [1, 2]:
-                                await self.handle_swap(player, free)
+                                await self.handle_swap(player, is_analysis)
                         elif action == 'clear':
-                            if free or player.id in [1, 2]:
-                                await self.handle_clear(player, free)
+                            if is_analysis or player.id in [1, 2]:
+                                await self.handle_clear(player, is_analysis)
                         elif action == 'save':
-                            if not free:
+                            if not is_analysis:
                                 await self.handle_save_game(player, data.get('game_id'))
                         elif action == 'load':
                             if player.id in [1, 2]:
@@ -72,8 +72,8 @@ class WebsocketCommunicator:
                             else:
                                 print('Player disallowed to load the game!')
                         elif action == 'import':
-                            if free or player.id in [1, 2]:
-                                await self.handle_import_game(player, data.get('game_id'), free)
+                            if is_analysis or player.id in [1, 2]:
+                                await self.handle_import_game(player, data.get('game_id'), is_analysis)
                         elif action == 'store':
                             if player.id in [1, 2]:
                                 await self.handle_store_position(player, data.get('opening'), data.get('position'), data.get('result'))
@@ -84,7 +84,7 @@ class WebsocketCommunicator:
                         elif action == 'kick':
                             await self.handle_kick_player(player, data.get('player_id'))
                         elif action == 'join_board':
-                            if not free:
+                            if not is_analysis:
                                 await self.handle_join_board(player, data.get('spot'))
                     except JSONDecodeError as e:
                         print(e, message)
@@ -92,7 +92,7 @@ class WebsocketCommunicator:
             traceback.print_exc()
         finally:
             try:
-                await self.unregister(websocket, free)
+                await self.unregister(websocket, is_analysis)
             except Exception as e:
                 traceback.print_exc()
 
@@ -116,9 +116,9 @@ class WebsocketCommunicator:
             message = DecimalEncoder().encode(message_dict)
             await websocket.send(message)
 
-    async def register(self, websocket, free):
+    async def register(self, websocket, is_analysis):
         print('player connecting...')
-        if free:
+        if is_analysis:
             free_clients[websocket] = Player(3, websocket, 'free')
             return
         player = self.assign_player(websocket)
@@ -226,8 +226,8 @@ class WebsocketCommunicator:
         }
         await self.send_to_one(message_dict, _player.websocket)
 
-    async def unregister(self, websocket, free):
-        if free:
+    async def unregister(self, websocket, is_analysis):
+        if is_analysis:
             player = free_clients[websocket]
             del player
             del free_clients[websocket]
@@ -264,10 +264,16 @@ class WebsocketCommunicator:
         #     players_file.write(json.dumps(players, cls=DictEncoder))
         # lock.release()
 
-    async def handle_board_click(self, player, r, c, alternate, hints, free=False):
+    async def handle_board_click(self, player, r, c, color, hints, is_analysis=False):
         try:
-            if alternate:
-                moving_player = player.turn
+            if is_analysis:
+                if color == 'natural':
+                    moving_player = BLACK_COLOR if (len(player.position) % 2 == 0 and not player.swap) or \
+                                                   (len(player.position) % 2 == 1 and player.swap) else WHITE_COLOR
+                elif color == 'black':
+                    moving_player = BLACK_COLOR
+                elif color == 'white':
+                    moving_player = WHITE_COLOR
             else:
                 if player.id != turn:
                     return
@@ -279,7 +285,7 @@ class WebsocketCommunicator:
                 'message': f'Player {player.id} has clicked cell {chr(c + 97)}{r + 1}'
             }
             tasks = [
-                self.make_move(player, moving_player, r, c, free),
+                self.make_move(player, moving_player, r, c, is_analysis),
                 self.send_to_board(message_dict, player.websocket)
             ]
         except Exception as e:
@@ -288,18 +294,18 @@ class WebsocketCommunicator:
         await asyncio.wait(tasks)
 
         global position
-        if not free and hints and len(position) >= 2:
+        if not is_analysis and hints and len(position) >= 2:
             first_coords = position[0].split('-')
             opening = f'{chr(int(first_coords[1]) + 97)}{int(first_coords[0]) + 1}'
             await self.handle_hints(player, opening, position)
 
-    async def make_move(self, player, moving_player_id, r, c, free=False):
+    async def make_move(self, player, moving_player_id, r, c, is_analysis=False):
         # if board.rows[r][c].state == 0:
         #     board.rows[r][c].state = moving_player_id
         # elif board.rows[r][c].state == moving_player_id:
         #     board.rows[r][c].state = 0
 
-        if free:
+        if is_analysis:
             player.turn = WHITE_COLOR if player.turn == BLACK_COLOR else BLACK_COLOR
             player.position.append(f'{r}-{c}-{moving_player_id}')
         else:
@@ -342,12 +348,12 @@ class WebsocketCommunicator:
         }
         await self.send_to_board(message_dict, player.websocket)
 
-    async def handle_undo(self, player, free):
+    async def handle_undo(self, player, is_analysis):
         # TODO: get rid of stupid turn
         global turn
         turn = BLACK_COLOR if turn == WHITE_COLOR else WHITE_COLOR
 
-        if free:
+        if is_analysis:
             board_position = player.position
         else:
             global position
@@ -377,7 +383,7 @@ class WebsocketCommunicator:
 
             await asyncio.wait(tasks)
 
-    async def handle_clear(self, player, free=False):
+    async def handle_clear(self, player, is_analysis=False):
         global turn
         turn = BLACK_COLOR
 
@@ -388,13 +394,13 @@ class WebsocketCommunicator:
             'type': 'clear',
             'message': f'Player {player.id} has cleared the board'
         }
-        if free:
+        if is_analysis:
             await self.send_to_one(message_dict, player.websocket)
         else:
             await self.send_to_board(message_dict, player.websocket)
 
-    async def handle_swap(self, player, free=False):
-        if free:
+    async def handle_swap(self, player, is_analysis=False):
+        if is_analysis:
             player.turn = BLACK_COLOR if player.turn == WHITE_COLOR else WHITE_COLOR
             return
         elif len(position) != 1:
@@ -554,7 +560,7 @@ class WebsocketCommunicator:
         if tasks:
             await asyncio.wait(tasks)
 
-    async def handle_import_game(self, player, game_number, free):
+    async def handle_import_game(self, player, game_number, is_analysis):
         global position
         position = []
 
@@ -562,13 +568,13 @@ class WebsocketCommunicator:
             'type': 'clear',
             'message': f''
         }
-        if free:
+        if is_analysis:
             await self.send_to_one(message_dict, player.websocket)
         else:
             await self.send_to_board(message_dict, player.websocket)
-        await self.import_lg_game(player, game_number, free)
+        await self.import_lg_game(player, game_number, is_analysis)
 
-    async def import_lg_game(self, player, game_number, free):
+    async def import_lg_game(self, player, game_number, is_analysis):
         response = requests.get(f'https://littlegolem.net/servlet/sgf/{game_number}/game{game_number}.hsgf')
         moves = response.text.split(';')[2:]
 
@@ -583,10 +589,7 @@ class WebsocketCommunicator:
         k = 0
         for move in moves:
             k += 1
-            moving_player = WHITE_COLOR if \
-                (move[0] == 'W' and not has_swap) or \
-                (move[0] == 'B' and has_swap) \
-                else BLACK_COLOR
+            moving_player = WHITE_COLOR if move[0] == 'B' else BLACK_COLOR
             if k == 1 and has_swap:
                 moving_player = WHITE_COLOR if moving_player == BLACK_COLOR else BLACK_COLOR
                 r = ord(move[2]) - 97
@@ -601,9 +604,9 @@ class WebsocketCommunicator:
                 'message': f''
             }
             tasks = [
-                self.make_move(player, moving_player, r, c, free)
+                self.make_move(player, moving_player, r, c, is_analysis)
             ]
-            if free:
+            if is_analysis:
                 tasks.append(self.send_to_one(message_dict, player.websocket))
             else:
                 tasks.append(self.send_to_board(message_dict, player.websocket))

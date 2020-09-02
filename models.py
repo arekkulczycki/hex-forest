@@ -22,6 +22,7 @@ class Player:
         self.present = present
         self.turn = 1
         self.position = []
+        self.swap = False  # if first stone is white then this is True
 
     def __str__(self):
         return str(self.id) if self else '...'

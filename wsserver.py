@@ -57,6 +57,7 @@ def run(host, db_connection):
     r.add_route('/style.css', http_communicator.styles)
     r.add_route('/js.js', http_communicator.scripts)
     r.add_route('/favicon.ico', http_communicator.favicon)
+    r.add_route('/wood-pattern.png', http_communicator.wood_pattern)
 
     # TODO: use that fancy Japronto stuff
     # r.add_route('/async', asynchronous)
