@@ -8,8 +8,8 @@ from decorators import ssl_decorator
 from models import Board
 
 VERSION_MAJOR = 0
-VERSION_MINOR = 1
-VERSION_PATCH = 1
+VERSION_MINOR = 2
+VERSION_PATCH = 0
 
 
 class HttpCommunicator:
