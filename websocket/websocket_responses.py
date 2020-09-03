@@ -68,7 +68,7 @@ class WebsocketCommunicator:
                                 await self.handle_save_game(player, data.get('game_id'), is_analysis)
                         elif action == 'load':
                             if is_analysis or player.id in [1, 2]:
-                                await self.handle_load_game(player, data.get('game_id'))
+                                await self.handle_load_game(player, data.get('game_id'), is_analysis)
                             else:
                                 print('Player disallowed to load the game!')
                         elif action == 'import':
@@ -445,7 +445,7 @@ class WebsocketCommunicator:
         }
         await self.send_to_one(message_dict, player.websocket)
 
-    async def handle_load_game(self, player, game_id):
+    async def handle_load_game(self, player, game_id, is_analysis):
         print('signal reached target')
         if not game_id:
             print('game id not provided')
@@ -460,13 +460,17 @@ class WebsocketCommunicator:
         else:
             await self.handle_clear(player)
 
-        global position
-        position = game.get('position')
+        game_position = game.get('position')
+        if is_analysis:
+            player.position = game_position
+        else:
+            global position
+            position = game_position
 
         global turn
         tasks = []
 
-        for move in position:
+        for move in game_position:
             split = move.split('-')
             try:
                 r = int(split[0])
