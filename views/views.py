@@ -1,3 +1,4 @@
+import json
 import os
 
 from jinja2 import Template
@@ -6,6 +7,7 @@ from css_html_js_minify import html_minify, js_minify, css_minify
 from constants import STORE_MINIMUM, WHITE_COLOR, BLACK_COLOR
 from decorators import ssl_decorator
 from models import Board
+from stable_baselines import PPO2
 
 VERSION_MAJOR = 0
 VERSION_MINOR = 2
@@ -85,3 +87,15 @@ class HttpCommunicator:
     @ssl_decorator
     def show_board_19(self, request):
         return self.show_board(request, 'analysis', 19)
+
+    @ssl_decorator
+    def get_predicted_action(self, request):
+        transfer_ball_up_field_model = PPO2.load(f'static/transfer_ball_up_field.v9')
+        body = request.body
+        if body:
+            obs_json = request.body
+            obs = json.loads(obs_json)
+            action, _states = transfer_ball_up_field_model.predict(obs)
+        else:
+            action = 0
+        return request.Response(text=str(action), mime_type='text/json')
