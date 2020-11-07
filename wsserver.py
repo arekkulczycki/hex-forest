@@ -60,6 +60,7 @@ def run(host, db_connection):
     r.add_route('/wood-pattern.png', http_communicator.wood_pattern)
 
     r.add_route('/model-predict', http_communicator.get_predicted_action)
+    r.add_route('/model-predict-cross', http_communicator.get_predicted_cross)
 
     # TODO: use that fancy Japronto stuff
     # r.add_route('/async', asynchronous)

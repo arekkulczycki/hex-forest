@@ -99,3 +99,15 @@ class HttpCommunicator:
         else:
             action = 0
         return request.Response(text=str(action), mime_type='text/json')
+
+    @ssl_decorator
+    def get_predicted_cross(self, request):
+        assist_cross_model = PPO2.load(f'static/assist_cross.v9')
+        body = request.body
+        if body:
+            obs_json = request.body
+            obs = json.loads(obs_json)
+            action, _states = assist_cross_model.predict(obs)
+        else:
+            action = 0
+        return request.Response(text=str(action), mime_type='text/json')
