@@ -89,26 +89,26 @@ class HttpCommunicator:
     def show_board_19(self, request):
         return self.show_board(request, 'analysis', 19)
 
-    @ssl_decorator
-    def get_predicted_action(self, request):
-        transfer_ball_up_field_model = PPO2.load(f'static/transfer_ball_up_field.v12')
-        body = request.body
-        if body:
-            obs_json = request.body
-            obs = json.loads(obs_json)
-            action, _states = transfer_ball_up_field_model.predict(np.array(obs))
-        else:
-            action = 0
-        return request.Response(text=str(action), mime_type='text/json')
 
-    @ssl_decorator
-    def get_predicted_cross(self, request):
-        assist_cross_model = PPO2.load(f'static/assist_cross.v11')
-        body = request.body
-        if body:
-            obs_json = request.body
-            obs = json.loads(obs_json)
-            action, _states = assist_cross_model.predict(np.array(obs))
-        else:
-            action = 0
-        return request.Response(text=str(action), mime_type='text/json')
+async def get_predicted_action_async(request):
+    transfer_ball_up_field_model = PPO2.load(f'static/transfer_ball_up_field.v12')
+    body = request.body
+    if body:
+        obs_json = request.body
+        obs = json.loads(obs_json)
+        action, _states = transfer_ball_up_field_model.predict(np.array(obs))
+    else:
+        action = 0
+    return request.Response(text=str(action), mime_type='text/json')
+
+
+async def get_predicted_cross_async(request):
+    assist_cross_model = PPO2.load(f'static/assist_cross.v11')
+    body = request.body
+    if body:
+        obs_json = request.body
+        obs = json.loads(obs_json)
+        action, _states = assist_cross_model.predict(np.array(obs))
+    else:
+        action = 0
+    return request.Response(text=str(action), mime_type='text/json')
