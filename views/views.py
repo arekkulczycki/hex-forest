@@ -14,6 +14,9 @@ VERSION_MAJOR = 0
 VERSION_MINOR = 2
 VERSION_PATCH = 4
 
+transfer_ball_up_field_model = PPO2.load(f'static/transfer_ball_up_field.v12')
+assist_cross_model = PPO2.load(f'static/assist_cross.v11')
+
 
 class HttpCommunicator:
 
@@ -91,7 +94,6 @@ class HttpCommunicator:
 
 
 async def get_predicted_action_async(request):
-    transfer_ball_up_field_model = PPO2.load(f'static/transfer_ball_up_field.v12')
     body = request.body
     if body:
         obs_json = request.body
@@ -103,7 +105,6 @@ async def get_predicted_action_async(request):
 
 
 async def get_predicted_cross_async(request):
-    assist_cross_model = PPO2.load(f'static/assist_cross.v11')
     body = request.body
     if body:
         obs_json = request.body
