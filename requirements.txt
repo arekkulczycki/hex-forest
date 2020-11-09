@@ -9,3 +9,4 @@ css-html-js-minify==2.5.5
 # sqlalchemy-migrate==0.13.*
 tensorflow-cpu==1.15.0
 stable_baselines==2.10.1
+numpy

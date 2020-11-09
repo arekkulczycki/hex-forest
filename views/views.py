@@ -1,13 +1,14 @@
 import json
 import os
 
-from jinja2 import Template
+import numpy as np
 from css_html_js_minify import html_minify, js_minify, css_minify
+from jinja2 import Template
+from stable_baselines import PPO2
 
 from constants import STORE_MINIMUM, WHITE_COLOR, BLACK_COLOR
 from decorators import ssl_decorator
 from models import Board
-from stable_baselines import PPO2
 
 VERSION_MAJOR = 0
 VERSION_MINOR = 2
@@ -95,7 +96,7 @@ class HttpCommunicator:
         if body:
             obs_json = request.body
             obs = json.loads(obs_json)
-            action, _states = transfer_ball_up_field_model.predict(obs)
+            action, _states = transfer_ball_up_field_model.predict(np.array(obs))
         else:
             action = 0
         return request.Response(text=str(action), mime_type='text/json')
@@ -107,7 +108,7 @@ class HttpCommunicator:
         if body:
             obs_json = request.body
             obs = json.loads(obs_json)
-            action, _states = assist_cross_model.predict(obs)
+            action, _states = assist_cross_model.predict(np.array(obs))
         else:
             action = 0
         return request.Response(text=str(action), mime_type='text/json')
