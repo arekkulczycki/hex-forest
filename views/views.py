@@ -90,7 +90,7 @@ class HttpCommunicator:
 
     @ssl_decorator
     def get_predicted_action(self, request):
-        transfer_ball_up_field_model = PPO2.load(f'static/transfer_ball_up_field.v9')
+        transfer_ball_up_field_model = PPO2.load(f'static/transfer_ball_up_field.v12')
         body = request.body
         if body:
             obs_json = request.body
@@ -102,7 +102,7 @@ class HttpCommunicator:
 
     @ssl_decorator
     def get_predicted_cross(self, request):
-        assist_cross_model = PPO2.load(f'static/assist_cross.v9')
+        assist_cross_model = PPO2.load(f'static/assist_cross.v11')
         body = request.body
         if body:
             obs_json = request.body
