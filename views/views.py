@@ -14,11 +14,10 @@ VERSION_MAJOR = 0
 VERSION_MINOR = 2
 VERSION_PATCH = 4
 
-transfer_ball_up_field_model = PPO2.load(f'static/transfer_ball_up_field.v12')
-assist_cross_model = PPO2.load(f'static/assist_cross.v11')
-
 
 class HttpCommunicator:
+    transfer_ball_up_field_model = None
+    assist_cross_model = None
 
     def __init__(self, db):
         self.db = db
@@ -92,24 +91,52 @@ class HttpCommunicator:
     def show_board_19(self, request):
         return self.show_board(request, 'analysis', 19)
 
+    def get_predicted_action(self, request):
+        if self.transfer_ball_up_field_model is None:
+            self.transfer_ball_up_field_model = PPO2.load(f'static/transfer_ball_up_field.v12')
+        body = request.body
+        if body:
+            obs_json = request.body
+            obs = json.loads(obs_json)
+            action, _states = self.transfer_ball_up_field_model.predict(np.array(obs))
+        else:
+            action = 0
+        return request.Response(text=str(action), mime_type='text/json')
 
-async def get_predicted_action_async(request):
-    body = request.body
-    if body:
-        obs_json = request.body
-        obs = json.loads(obs_json)
-        action, _states = transfer_ball_up_field_model.predict(np.array(obs))
-    else:
-        action = 0
-    return request.Response(text=str(action), mime_type='text/json')
+    def get_predicted_cross(self, request):
+        if self.assist_cross_model is None:
+            self.assist_cross_model = PPO2.load(f'static/assist_cross.v11')
+        body = request.body
+        if body:
+            obs_json = request.body
+            obs = json.loads(obs_json)
+            action, _states = self.assist_cross_model.predict(np.array(obs))
+        else:
+            action = 0
+        return request.Response(text=str(action), mime_type='text/json')
 
+    @staticmethod
+    async def get_predicted_action_async(request):
+        if HttpCommunicator.transfer_ball_up_field_model is None:
+            HttpCommunicator.transfer_ball_up_field_model = PPO2.load(f'static/transfer_ball_up_field.v12')
+        body = request.body
+        if body:
+            obs_json = request.body
+            obs = json.loads(obs_json)
+            action, _states = HttpCommunicator.transfer_ball_up_field_model.predict(np.array(obs))
+        else:
+            action = 0
+        return request.Response(text=str(action), mime_type='text/json')
 
-async def get_predicted_cross_async(request):
-    body = request.body
-    if body:
-        obs_json = request.body
-        obs = json.loads(obs_json)
-        action, _states = assist_cross_model.predict(np.array(obs))
-    else:
-        action = 0
-    return request.Response(text=str(action), mime_type='text/json')
+    @staticmethod
+    async def get_predicted_cross_async(request):
+        if HttpCommunicator.assist_cross_model is None:
+            HttpCommunicator.assist_cross_model = PPO2.load(f'static/assist_cross.v11')
+        body = request.body
+        if body:
+            obs_json = request.body
+            obs = json.loads(obs_json)
+            action, _states = HttpCommunicator.assist_cross_model.predict(np.array(obs))
+        else:
+            action = 0
+        return request.Response(text=str(action), mime_type='text/json')

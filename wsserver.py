@@ -6,7 +6,7 @@ import websockets
 from japronto import Application
 
 from decorators import ssl_decorator
-from views.views import HttpCommunicator, get_predicted_action_async, get_predicted_cross_async
+from views.views import HttpCommunicator
 from models import DynamoDB
 from websocket.websocket_responses import WebsocketCommunicator
 
@@ -59,8 +59,10 @@ def run(host, db_connection):
     r.add_route('/favicon.ico', http_communicator.favicon)
     r.add_route('/wood-pattern.png', http_communicator.wood_pattern)
 
-    r.add_route('/model-predict', get_predicted_action_async)
-    r.add_route('/model-predict-cross', get_predicted_cross_async)
+    # r.add_route('/model-predict', http_communicator.get_predicted_action)
+    # r.add_route('/model-predict-cross', http_communicator.get_predicted_cross)
+    r.add_route('/model-predict', http_communicator.get_predicted_action_async)
+    r.add_route('/model-predict-cross', http_communicator.get_predicted_cross_async)
 
     # TODO: use that fancy Japronto stuff
     # r.add_route('/async', asynchronous)
