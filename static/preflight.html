@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Preflight</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fetch/2.0.4/fetch.js" integrity="sha512-O3XJkDDBu8dxPwNt5LnoRJqucjVcWJ2i5FcGGnO+CSQFnlu+UB1nays8Jgae1/WBWm1QJkZPnlIEYf8nU+Y4bQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+        function load() {
+            console.log("works")
+            fetch('api/data', {
+              headers: {
+                'Content-Type': 'text/html'
+              },
+            })
+              .then(function(response) {
+                    r = response.text();
+                    return r;
+              }).then(function(body) {
+                  console.log(body);
+                this.innerHTML = body;
+              })
+        }
+    </script>
+</head>
+<body>
+    <div onclick="load()">
+        click for cross-origin-content
+    </div>
+</body>
+</html>

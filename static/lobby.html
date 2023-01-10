@@ -1,0 +1,69 @@
+<html lang="en-us">
+<head title="LiveHex">
+    <title>LiveHex</title>
+    <link rel="stylesheet" href="/style.css?v={{ version }}">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orestbida/cookieconsent@v2.9.1/dist/cookieconsent.css" media="print" onload="this.media='all'">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js"></script>
+    <script src="/js/js.js?v={{ version }}" ws-address="{{ websocket_address }}" black-color="{{ black_color }}"
+            white-color="{{ white_color }}" mode="{{ mode }}" store-minimum="{{ store_minimum }}"></script>
+</head>
+
+<body class="body" {% if warning %}onload="showWarning();"{% endif %}>
+<div class="lobby-nav">
+    <div class="logo"><img src="/hex.png">livehex</div>
+    <div class="logged-as"><div class="logged-as-text-rel"><div id="logged" class="logged-as-text player_name">{{ player_name }}</div></div></div>
+</div>
+<div class="lobby">
+    <div class="lobby-column lobby-actions">
+        <a href="/new-game"><button class="button">new game</button></a>
+        <div class="new-game-settings"></div>
+        <a href="" onclick="alert('sorry, not implemented yet :(')"><button class="button" onclick="alert('sorry, not implemented yet :(')">new game vs AI</button></a>
+        <a href="/analysis"><button class="button">analysis board</button></a>
+        <a href="" onclick="alert('sorry, not implemented yet :(')"><button class="button">settings</button></a>
+        {% if not is_logged %}
+        <div class="name-setting">
+            <input id="name-setting" type="text" placeholder="your name">
+            <a href="javascript:window.location=setNameUrl();"><button class="button">set my name</button></a>
+        </div>
+        {% endif %}
+    </div>
+    <div class="lobby-column lobby-games">
+        <h1 class="heading">your active games</h1>
+        <ul role="list" class="lobby-list">
+            <li class="lobby-item"></li>
+        </ul>
+
+        <h1 class="heading">other active games</h1>
+        <ul role="list" class="lobby-list">
+            <li class="lobby-item"></li>
+        </ul>
+
+        <h1 class="heading">finished games</h1>
+        <ul role="list" class="lobby-list">
+            <li class="lobby-item"></li>
+        </ul>
+    </div>
+    <div class="lobby-column lobby-players">
+        <h1 class="heading">players online</h1>
+        <ul id="players-online" role="list" class="lobby-list">
+            {% for player in players_online %}
+            <li class="lobby-item player_name">{{ player.name }}</li>
+            {% endfor %}
+        </ul>
+
+        <h1 class="heading">players offline</h1>
+        <ul id="players-offline" role="list" class="lobby-list">
+            {% for player in players_offline %}
+            <li class="lobby-item">{{ player.name }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% if warning %}
+<div id="warning" style="visibility: hidden">{{ warning }}</div>
+{% endif %}
+<script defer src="https://cdn.jsdelivr.net/gh/orestbida/cookieconsent@v2.9.1/dist/cookieconsent.js"></script>
+<script defer src="js/cookieconsent.js"></script>
+</body>
+</html>

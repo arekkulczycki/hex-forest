@@ -1,11 +1,12 @@
 let socket;
 const script = document.getElementsByTagName('script')[2];
 const mode = script.getAttribute('mode');
-const blackColor = script.getAttribute('black-color');
-const whiteColor = script.getAttribute('white-color');
-const storeMinimum = script.getAttribute('store-minimum');
+const blackColor = false;
+const whiteColor = true;
+const storeMinimum = 10;
 var active = false;
 var timeout = null;
+var lastMoveColor = true;
 
 function connect() {
     let wsAddress = script.getAttribute('ws-address');
@@ -13,11 +14,13 @@ function connect() {
 
     socket.onopen = function (e) {
         console.log('Connection established');
-        console.log('Sending to server');
-        socket.send('socket opened');
 
-        let name = Cookies.get('hex_forest_name');
-        setName(name);
+        let pin = Cookies.get('livehex-pin');
+        let message = {
+            'action': 'assign_player',
+            'pin': pin ?? null
+        };
+        socket.send(JSON.stringify(message))
     };
 
     socket.onmessage = function (event) {
@@ -25,13 +28,47 @@ function connect() {
         console.log(data);
         let playerId;
         let playerName;
-        switch (data.type) {
+        switch (data.action) {
             case 'info':
                 console.log(data.message);
                 break;
             case 'alert':
                 alert(data.message);
                 break;
+            case 'joined':
+                handlePlayerJoined(data);
+                break;
+            case 'leaved':
+                handlePlayerLeaved(data);
+                break;
+            case 'move':
+                handleMove(data);
+                break;
+            case 'remove':
+                removeStone(data.id);
+                break;
+            case 'clear':
+                clearBoard();
+                break;
+            case 'takeSpot':
+                takeSpot(data)
+                break;
+            case 'leaveSpot':
+                leaveSpot(data)
+                break;
+            case 'gameStarted':
+                gameStarted(data)
+                break;
+            case 'showSwap':
+                showSwap(data)
+                break;
+            case 'swapped':
+                swapped(data);
+                break;
+            case 'chat_message':
+                chatMessage(data);
+                break;
+
             case 'players':
                 for (let i=0; i<data.players.length; i++) {
                     playerId = data.players[i].id;
@@ -51,7 +88,7 @@ function connect() {
                 }
                 break;
             case 'playerIn':
-                playerId = data.player_id;
+                playerId = 0;  // TODO: change handling of player assignment
                 playerName = data.player_name;
                 if (playerId === 1 || playerId === 2) {
                     assignPlayer(playerId, playerName);
@@ -78,50 +115,11 @@ function connect() {
                     $(`#${playerId}`).html(playerName);
                 }
                 break;
-            case 'takeSpot':
-                let oldId = data.player_old_id;
-                playerId = data.player_id;
-                playerName = data.player_name;
-                if (oldId === 1) {
-                    $('#player_1_box_text').html('click to play');
-                } else if (oldId === 2) {
-                    $('#player_2_box_text').html('click to play');
-                } else {
-                    removePlayer(oldId);
-                }
-                active = true;
-                assignPlayer(playerId, playerName);
-                break;
-            case 'leaveSpot':
-                if (data.spot === 1) {
-                    $('#player_1_box_text').html('click to play');
-                } else if (data.spot === 2) {
-                    $('#player_2_box_text').html('click to play');
-                }
-                break;
-            case 'move':
-                let player_id = data.move.player_id;
-                let id = data.move.id;
-                let cx = data.move.cx;
-                let cy = data.move.cy;
-                putStone(id, cx, cy, player_id);
-                break;
             case 'mark':
                 let markId = data.move.id;
                 let MarkCx = data.move.cx;
                 let MarkCy = data.move.cy;
                 putMarker(markId, MarkCx, MarkCy);
-                break;
-            case 'remove':
-                console.log(data.message);
-                removeStone(data.id);
-                break;
-            case 'clear':
-                console.log(data.message);
-                clearBoard();
-                break;
-            case 'chat':
-                handleMessage(data.player_id, data.message);
                 break;
             case 'saved':
                 $('#game_id').val(data.game_id);
@@ -159,11 +157,17 @@ function connect() {
 }
 connect();
 
-function handleMessage(player_id, message) {
-    let message_block = `<div class="message message_${player_id}">>&nbsp;${message}</div>`;
+function chatMessage(data) {
+    let playerName = data.player_name;
+    let white = $('#player_2_box_text');
+    let black = $('#player_1_box_text');
+
+    let color = white.html().trim() === playerName ? 'white' : (black.html().trim() === playerName ? 'black' : 'blue');
+
+    let message_block = `<div class="message message_${color}">${playerName}>&nbsp;${data.message}</div>`;
     let chat = $('#chat');
-    chat.append(message_block);
-    chat.animate({scrollTop: chat.prop('scrollHeight')}, 750);
+    chat.prepend(message_block);
+    // chat.animate({scrollTop: chat.prop('scrollHeight')}, 750);
 }
 
 function toggleResult() {
@@ -175,15 +179,16 @@ function toggleResult() {
     }
 }
 
-function joinBoard(spot) {
+function joinBoard(color) {
     if (mode === 'free'){
         alert('Not needed in free mode!');
         return;
     }
 
     let message = {
-        'action': 'join_board',
-        'spot': spot
+        'action': 'board_join',
+        'color': color,
+        'game_id': window.location.href.split('/').at(-1)
     };
     socket.send(JSON.stringify(message))
 }
@@ -219,21 +224,26 @@ function assignPlayer(player_id, player_name) {
 
 function removePlayer(player_id, player_name) {
     if (player_id === 1 || player_id === 2) {
-        $(`#player_${player_id}_box_text`).html('click to play');
+        $(`#player_${player_id}_box_text`).html('join');
     } else {
         $(`#${player_id}`).remove();
     }
 }
 
 function boardClick(row, column) {
-    let color = $('#color_alternate').prop('checked') ? 'natural' :
+    let colorMode = $('#color_alternate').prop('checked') ? 'alternate' :
         ($('#color_black').prop('checked') ? 'black' : 'white');
+
+    $('#board').find('circle').length
+
     let message = {
-        'action': 'board_click',
+        'action': 'board_put',
+        'mode': window.location.pathname === '/analysis' ? 'analysis' : 'game',
+        'game_id': window.location.pathname === '/analysis' ? null : window.location.href.split('/').at(-1),
         'row': row,
         'column': column,
-        'color': color,
-        'hints': $('#hints').prop('checked')
+        'color_mode': colorMode,
+        'last_move_color': lastMoveColor,
     };
     socket.send(JSON.stringify(message))
 }
@@ -246,7 +256,7 @@ function boardHover(id) {
 
     timeout = setTimeout(() => {
         $('#coords').html('');
-    }, 2000);
+    }, 1000);
 }
 
 function sendStore(winningPlayerId) {
@@ -311,29 +321,36 @@ function lgImport(game_id = null) {
 
 function sendUndo() {
     let message = {
-        'action': 'undo'
+        'action': 'board_undo'
     };
     socket.send(JSON.stringify(message))
 }
 
 function sendSwap() {
-    console.log('here')
     let message = {
-        'action': 'swap'
+        'action': 'board_swap',
+        'game_id': window.location.href.split('/').at(-1)
+    };
+    socket.send(JSON.stringify(message))
+}
+
+function startGame() {
+    let message = {
+        'action': 'board_start',
+        'game_id': window.location.href.split('/').at(-1)
     };
     socket.send(JSON.stringify(message))
 }
 
 function sendClearBoard() {
     let message = {
-        'action': 'clear'
+        'action': 'board_clear',
+        'mode': window.location.pathname === '/analysis' ? 'analysis' : 'game'
     };
-    console.log('clear!!!');
     socket.send(JSON.stringify(message));
 }
 
 function clearBoard() {
-    clearHints();
     $('#board').find(`circle`).each((i, e) => {
         e.remove();
     });
@@ -341,8 +358,9 @@ function clearBoard() {
 
 function sendRemoveStone(id) {
     let message = {
-        'action': 'remove',
-        'id': id
+        'action': 'board_remove',
+        'id': id,
+        'mode': window.location.pathname === '/analysis' ? 'analysis' : 'game'
     };
     socket.send(JSON.stringify(message))
 }
@@ -364,22 +382,22 @@ function trySendMessage(e) {
 }
 
 function sendMessage() {
-    if (!active) {
-        alert('Only active players can write messages.');
-        return;
-    }
-
     let messageBox = $('#message');
-    let message = {
-        'action': 'chat',
-        'message': messageBox.val()
-    };
-    socket.send(JSON.stringify(message));
+    let text = messageBox.val();
+    if (text) {
+        let message = {
+            'action': 'chat_message',
+            'message': messageBox.val()
+        };
+        socket.send(JSON.stringify(message));
+    }
 
     messageBox.val('');
 }
 
 function removeStone(id) {
+    lastMoveColor = !lastMoveColor;
+
     let lastMoveMarker = $('#lastMoveMarker');
     if (lastMoveMarker.length) {
         lastMoveMarker.remove();
@@ -387,27 +405,17 @@ function removeStone(id) {
     $(`#${id}`).remove();
 
     setOpening();
-
-    clearHints();
-
-    if ($('#hints').prop('checked')) {
-        sendLoadHints();
-    }
-
-    if (getAllStones().length === 1) {
-        $(`#swap`).css('display', 'block');
-    } else {
-        $(`#swap`).css('display', 'none');
-    }
 }
 
-function putStone(id, cx, cy, player_id) {
+function putStone(id, cx, cy, color) {
+    lastMoveColor = !lastMoveColor;
+
     let lastMoveMarker = $('#lastMoveMarker');
     if (lastMoveMarker.length) {
         lastMoveMarker.remove();
     }
 
-    let fill = player_id === 1 ? 'black' : 'white';
+    let fill = color ? 'white' : 'black';
 
     let xmlns = $('#xmlns').val();
     let stone = document.createElementNS(xmlns,'circle');
@@ -537,4 +545,106 @@ function toggleColor(type) {
         a.prop('checked', false);
         b.prop('checked', false);
     }
+}
+
+function setNameUrl() {
+    let name = $('#name-setting').val();
+    return `/login/${name}`
+}
+
+function showWarning() {
+    window.history.pushState({}, document.title, window.location.pathname);
+    let warning = $('#warning') ?? null;
+    if (warning) {
+        alert(warning.html());
+    }
+    warning.remove()
+}
+
+function handlePlayerJoined(data) {
+    let onlinePlayersList = $('#players-online');
+    let playerItem = `<li class="lobby-item">${data.player_name}</li>`;
+    onlinePlayersList.append(playerItem);
+
+    if (data.registered) {
+        $('#players-offline').find('li').each((i, e) => {
+            if ($(e).html().trim() === data.player_name) {
+                e.remove();
+            }
+        });
+    }
+}
+
+function handlePlayerLeaved(data) {
+    $('#players-online').find('li').each((i, e) => {
+        if ($(e).html().trim() === data.player_name) {
+            console.log(`removing ${data.player_name}`);
+            e.remove();
+        }
+    });
+
+    if (data.registered) {
+        let offlinePlayersList = $('#players-offline');
+        let playerItem = `<li class="lobby-item">${data.player_name}</li>`;
+        offlinePlayersList.append(playerItem);
+    }
+}
+
+function handleMove(data) {
+    let color = data.move.color;
+    let id = data.move.id;
+    let cx = data.move.cx;
+    let cy = data.move.cy;
+    putStone(id, cx, cy, color);
+}
+
+function takeSpot(data) {
+    let playerName = data.player_name;
+    let color = data.color;
+
+    let white = $('#player_2_box_text');
+    let black = $('#player_1_box_text');
+
+    if (color) {
+        if (black.html().trim() === playerName) {
+            black.html("join");
+        }
+        white.html(playerName);
+    } else {
+        if (white.html().trim() === playerName) {
+            white.html("join");
+        }
+        black.html(playerName);
+    }
+}
+
+function leaveSpot(data) {
+    if (data.color) {
+        $('#player_2_box_text').html('join');
+    } else {
+        $('#player_1_box_text').html('join');
+    }
+}
+
+function gameStarted(data) {
+    $('#status').html("status: in progress");
+    let start = $('#start');
+    if (start) {
+        start.remove();
+    }
+}
+
+function showSwap(data) {
+    $('#swap').css('visibility', 'visible');
+}
+
+function swapped() {
+    $('#swap').css('visibility', 'hidden');
+
+    let white = $('#player_2_box_text');
+    let black = $('#player_1_box_text');
+
+    let blackText = black.html();
+    black.html(white.html());
+    white.html(blackText);
 }

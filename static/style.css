@@ -1,30 +1,193 @@
 body {
-    background: rgb(215, 215, 215)
+    background: rgb(225, 225, 225);
+    color: #333;
+    letter-spacing: 2px;
+    /*text-transform: lowercase;*/
+    white-space: nowrap;
+}
+
+a {
+    text-decoration: none;
+}
+
+.lobby-nav {
+    height: 4vw;
+}
+.logo {
+    font-size: 3vw;
+    font-weight: bolder;
+    color: white;
+    float: left;
+    cursor: pointer;
+}
+.logo img {
+    height: 80%;
+    vertical-align: bottom;
+    margin-left: 0.5vw;
+    margin-right: 0.5vw;
+}
+
+.logged-as {
+    border: 1px white;
+    width: 3vw;
+    height: 3vw;
+    float: right;
+    background: white;
+    position: absolute;
+    right: 1vw;
+    top: 0.5vw;
+    -moz-border-radius: 1.5vw;
+    -webkit-border-radius: 1.5vw;
+    border-radius: 1.5vw;
+}
+.logged-as-text-rel {
+    position: relative;
+}
+.logged-as-text {
+    font-size: 1vw;
+    position: absolute;
+    right: 1vw;
+    top: 1.5vw;
+    transform: translate(0, -50%);
+}
+
+.lobby {
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: stretch;
+    align-content: stretch;
+}
+
+.lobby-column {
+    flex: 1 1 auto;
+    align-self: auto;
+    order: 0;
+    margin: 0.5vw;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-content: center;
+    align-items: center;
+    background: rgba(215, 215, 215, 10);
+    position: relative;
+    /*box-shadow: 0.5vw 0vw 0.5vw 0vw rgba(120,0,0,.2),*/
+    /*           -0.5vw -0.5vw 0vw 0.5vw rgba(120,120,0,.2),*/
+    /*            0.5vw 0vw 0.5vw 0vw rgba(120,0,120,.2),*/
+    /*           -0.5vw 0.5vw 0vw 1vw rgba(120,0,120,.2) ;*/
+}
+.lobby-column:nth-child(2) {
+    flex: 2 1 auto;
+}
+.lobby-column:before {
+    content: "";
+    z-index: -1;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: radial-gradient(white 0%, black 100% );
+    filter: blur(5vw);
+    opacity: 0.3;
+    transition: opacity 0.3s;
+    border-radius: inherit;
+}
+.lobby-column::after {
+    content: "";
+    z-index: -1;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: inherit;
+    border-radius: inherit;
+}
+
+.lobby-actions {
+
+}
+
+.lobby-games {
+
+}
+
+.lobby-players {
+
+}
+
+.lobby-list {
+    padding: 0;
+    text-align: left;
+    font-size: 1vw;
+}
+
+.lobby-item {
+    list-style: none;
+}
+
+.heading {
+    text-align: center;
+    font-size: 1vw;
+}
+
+.button {
+    display: block;
+    font-size: 1vw;
+    margin: 1vw 1vw;
+    padding: 0.4vw 0.6vw;
+    width: 10vw;
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#f5f5f5));
+    background-image: linear-gradient(180deg, #f5f5f5, #ededed);
+    -webkit-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.225);
+    -moz-box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.225);
+    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.225);
+    color: #000;
+    text-align: center;
+    letter-spacing: 0.1vw;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+#name-setting {
+    height: 2vw;
+    width: 12vw;
+    font-size: 1vw;
+}
+.name-setting {
+    margin-top: 2vw;
 }
 
 .absolute {
     position: absolute;
 }
+
 .player_1 {
     background: black;
 }
+
 .player_2 {
     background: white;
 }
 
 .player_box {
-    min-height: 20px;
+    min-height: 1vw;
     width: 50%;
-    padding: 10px 5px 10px 10px;
+    padding: 0.5vw 0.5vw 0.5vw 0.5vw;
     border: solid 1px black;
     overflow: hidden;
-    font-size: 18px;
-    font-weight: bold;
-    background-color: #ffcd8f;
-    background-image: url('/wood-pattern.png');
+    font-size: 1vw;
+    font-weight: bolder;
+    background-color: #ffd5a1;
+    background-image: url('/wood-grain.png');
     background-blend-mode: SOFT-LIGHT;
     font-family: monospace;
+    cursor: pointer;
 }
+
 .player_text {
     display: list-item;
     list-style: none;
@@ -33,21 +196,28 @@ body {
 #message {
     width: 100%;
 }
+
 .message {
-    font-size: 18px;
+    font-size: 1vw;
     font-family: monospace;
 }
-.message_1 {
+
+.message_black {
     color: black;
     /*-webkit-text-fill-color: black;*/
     /*-webkit-text-stroke-width: 0.3px;*/
     /*-webkit-text-stroke-color: white;*/
 }
-.message_2 {
+
+.message_white {
     color: white;
     /*-webkit-text-fill-color: white;*/
     /*-webkit-text-stroke-width: 0.3px;*/
     /*-webkit-text-stroke-color: black;*/
+}
+
+.message_blue {
+    color: lightblue;
 }
 
 .arena {
@@ -57,6 +227,7 @@ body {
     flex-direction: column;
     flex-wrap: wrap;
 }
+
 @media only screen and (min-device-width: 480px) {
     .arena {
         flex-direction: row;
@@ -64,18 +235,6 @@ body {
     }
 }
 
-.button {
-    width: 10vw;
-    font-size: 1.2vw;
-    color: black;
-    background: linear-gradient(to bottom, #f5f5f5 0%, #ededed 100%);
-    -webkit-box-shadow: 0 2px 5px 0 rgba(0,0,0,0.225);
-    -moz-box-shadow: 0 2px 5px 0 rgba(0,0,0,0.225);
-    box-shadow: 0 2px 5px 0 rgba(0,0,0,0.225);
-    border: 0;
-    height: 3vw;
-    margin: 0.2vw;
-}
 .input {
     width: 10vw;
     height: 3vw;
@@ -86,32 +245,42 @@ body {
 .board-container {
     min-width: 70vw;
     width: 100%;
-    flex:  2 1 0;
+    flex: 2 1 0;
     position: relative;
 }
-.over-board  {
+
+.over-board {
     position: absolute;
     right: 2vw;
+    font-size: 1vw;
 }
+
 .over-board div {
     padding: 1vw;
 }
+
 .menu-container {
     width: 100%;
     flex: 1 1 0;
     min-width: 25vw;
 }
+
 .menu-paragraph {
     display: flex;
     margin: 0.5vw 0;
 }
+
 .menu-paragraph-big {
+    font-size: 1vw;
     font-weight: bold;
     margin: 30px 0;
 }
+
 .spectators {
+    font-size: 1vw;
     font-weight: normal;
 }
+
 .spectator-name {
     margin: 5px;
 }
@@ -122,13 +291,15 @@ body {
 
 .chat {
     /*display: flex;*/
-    height: 300px;
+    height: 20vw;
     border: solid 1px black;
-    padding: 10px;
+    padding: 1vw;
     overflow-y: scroll;
-    background-color: #ffcd8f; /* #FFCF79;*/
-    background-image: url('/wood-pattern.png');
+    background-color: #ffd5a1; /* #FFCF79;*/
+    background-image: url('/wood-grain.png');
     background-blend-mode: SOFT-LIGHT;
+    display: flex;
+    flex-direction: column-reverse;
 }
 
 .marker-container {
@@ -138,25 +309,37 @@ body {
     height: 100%;
     width: 100%;
 }
+
 .marker {
     height: 10px;
     width: 10px;
     margin: 3px;
     border-radius: 50%;
 }
+
 .cell {
-    stroke:black;
-    stroke-width:1.0;
+    stroke: black;
+    stroke-width: 1.0;
     fill: #FFCF79;
-    background-image: url('/wood-pattern.png');
+    background-image: url('/wood-grain.png');
     background-blend-mode: SOFT-LIGHT;
     pointer-events: visible;
 }
+
 .cell:hover {
     fill: #efc27d;
 }
+
+.player_name {
+    text-transform: none;
+}
+
 #coords {
     font-size: 2vw;
     font-weight: bold;
     text-align: center;
+}
+
+#c-txt {
+    white-space: normal;
 }

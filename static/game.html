@@ -1,22 +1,33 @@
 <html lang="en-us">
-<head title="boardgame">
+<head title="Hex Forest">
     <title>Hex Forest</title>
-    <link rel="stylesheet" href="style.css?v={{ version }}">
+    <link rel="stylesheet" href="/style.css?v={{ version }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js"></script>
-    <script src="js.js?v={{ version }}" ws-address="{{ websocket_address }}" black-color="{{ black_color }}"
-            white-color="{{ white_color }}" mode="{{ mode }}" store-minimum="{{ store_minimum }}"></script>
+    <script src="/js/js.js?v={{ version }}" ws-address="{{ websocket_address }}" mode="{{ mode }}"></script>
 </head>
 <body>
+    <div class="lobby-nav">
+        <a href="/"><div class="logo"><img src="/hex.png">livehex</div></a>
+        <div class="logged-as"><div class="logged-as-text-rel"><div id="logged" class="logged-as-text player_name">{{ player_name }}</div></div></div>
+    </div>
     <div class="arena">
         <div class="board-container">
             <div class="over-board">
-                <div>
+                {% if mode != 'analysis' %}
+                <div id="status">
+                    {{ game_status }}
+                </div>
+                {% if show_start %}
+                <div id="start">
+                    <input type="button" class="button" value="start" onclick="startGame()">
+                </div>
+                {% endif %}
+                <div id="undo">
                     <input type="button" class="button" value="undo" onclick="sendUndo()">
                 </div>
-                {% if mode != 'analysis' %}
-                <div>
-                    <input id="swap" type="button" class="button" value="swap" onclick="sendSwap()">
+                <div id="swap" style="visibility: {% if show_swap %}visible{% else %}hidden{% endif %}">
+                    <input type="button" class="button" value="swap" onclick="sendSwap()">
                 </div>
                 {% endif %}
                 <div id="coords">
@@ -54,57 +65,59 @@
                         <polygon id="{{ cell.id }}" points="{{ cell.points }}" class="cell" onmouseover="boardHover('{{ cell.id }}')" onclick="boardClick({{ outer_loop.index0 }}, {{ loop.index0 }})"></polygon>
                     {% endfor %}
                 {% endfor %}
+                {% for stone in stones %}
+                    {{ stone|safe }}
+                {% endfor %}
+                {% if marker %}
+                    {{ marker|safe }}
+                {% endif %}
             </svg>
         </div>
         <div class="menu-container">
-            <div class="menu-paragraph">
-                <label for="nickname"></label><input id="nickname" type="text" class="input" placeholder="your name"><input type="button" class="button" value="set" onclick="changeName()">
-            </div>
+            {% if mode == "analysis" %}
             <div class="menu-paragraph">
                 <input type="button" class="button" value="clear board" onclick="sendClearBoard()">
             </div>
-            <div class="menu-paragraph">
-                <input type="button" class="button" value="save game" onclick="saveGame()">
-                <input type="button" class="button" value="load game" onclick="loadGame()">
-            </div>
-            <div class="menu-paragraph">
-                <input type="button" class="button" value="import from LG" onclick="lgImport()">
-                <input id="game_id" type="text" class="input" placeholder="game id">
-            </div>
-            <div class="menu-paragraph" style="display: none;">
-                <label for="opening-decoded">opening:&nbsp;</label><input id="opening-decoded" type="text" class="input" disabled="disabled">
-            </div>
-            {% if mode == 'analysis' %}
+{#            <div class="menu-paragraph">#}
+{#                <input type="button" class="button" value="save game" onclick="saveGame()">#}
+{#                <input type="button" class="button" value="load game" onclick="loadGame()">#}
+{#            </div>#}
+{#            <div class="menu-paragraph">#}
+{#                <input type="button" class="button" value="import from LG" onclick="lgImport()">#}
+{#                <input id="game_id" type="text" class="input" placeholder="game id">#}
+{#            </div>#}
+{#            <div class="menu-paragraph" style="display: none;">#}
+{#                <label for="opening-decoded">opening:&nbsp;</label><input id="opening-decoded" type="text" class="input" disabled="disabled">#}
+{#            </div>#}
             <div class="menu-paragraph">
                 <span id="color_title" style="margin-right: 20px;">stone color:</span>
-                    <input id="color_alternate" type="checkbox" onclick="toggleColor(0)" checked="checked"><label for="color_alternate" style="margin-right: 20px;">natural game order</label>
+                    <input id="color_alternate" type="checkbox" onclick="toggleColor(0)" checked="checked"><label for="color_alternate" style="margin-right: 20px;">alternate</label>
                     <input id="color_black" type="checkbox" onclick="toggleColor(1)"><label for="color_black" style="margin-right: 20px;">black</label>
                     <input id="color_white" type="checkbox" onclick="toggleColor(2)"><label for="color_white" style="margin-right: 20px;">white</label>
             </div>
             {% endif %}
-            {% if mode == 'analysis' %}
+            {% if mode != "analysis" %}
+{#            <div class="menu-paragraph">#}
+{#                <input id="storeWhite" type="button" class="button" value="store as white win" onclick="sendStore(2)" disabled="disabled">#}
+{#                <input id="storeBlack" type="button" class="button" value="store as black win" onclick="sendStore(1)" disabled="disabled">#}
+{#            </div>#}
+{#            <div class="menu-paragraph">#}
+{#                <label for="hints">show hints</label><input id="hints" type="checkbox" {% if mode != 'analysis' %} checked="checked" {% endif %} onchange="toggleResult()">#}
+{#                <div id="position-result" style="margin-left: 30px;" {% if mode != 'analysis' %} style="display: none;" {% endif %}>#}
+{#                    winner:&nbsp;<span id="winner">not solved</span>#}
+{#                </div>#}
+{#            </div>#}
             <div class="menu-paragraph">
-                <input id="storeWhite" type="button" class="button" value="store as white win" onclick="sendStore(2)" disabled="disabled">
-                <input id="storeBlack" type="button" class="button" value="store as black win" onclick="sendStore(1)" disabled="disabled">
-            </div>
-            <div class="menu-paragraph">
-                <label for="hints">show hints</label><input id="hints" type="checkbox" {% if mode != 'analysis' %} checked="checked" {% endif %} onchange="toggleResult()">
-                <div id="position-result" style="margin-left: 30px;" {% if mode != 'analysis' %} style="display: none;" {% endif %}>
-                    winner:&nbsp;<span id="winner">not solved</span>
-                </div>
-            </div>
-            {% endif %}
-            <div class="menu-paragraph">
-                <div id="player_1_box" class="player_box message_1">
-                    <img id="player_1_active" src="favicon.ico" alt="" style="width: 20px; float: left; padding-right: 10px;" {% if mode == 'p' %} onclick="kickPlayer(1)" {% endif %}>
-                    <div id="player_1_box_text" class="player_text" onclick="joinBoard(1)">
-                        click to play
+                <div id="player_1_box" class="player_box message_black">
+                    <img id="player_1_active" src="/favicon.ico" alt="" style="width: 1vw; float: left; padding-right: 0.5vw;" {% if mode == 'p' %} onclick="kickPlayer(1)" {% endif %}>
+                    <div id="player_1_box_text" class="player_text" onclick="joinBoard(false)">
+                        {{ black_player }}
                     </div>
                 </div>
-                <div id="player_2_box" class="player_box message_2">
-                    <img id="player_2_active" src="favicon.ico" alt="" style="width: 20px; float: left; padding-right: 10px;" {% if mode == 'p' %} onclick="kickPlayer(2)" {% endif %}>
-                    <div id="player_2_box_text" class="player_text" onclick="joinBoard(2)">
-                        click to play
+                <div id="player_2_box" class="player_box message_white">
+                    <img id="player_2_active" src="/favicon.ico" alt="" style="width: 1vw; float: left; padding-right: 0.5vw;" {% if mode == 'p' %} onclick="kickPlayer(2)" {% endif %}>
+                    <div id="player_2_box_text" class="player_text" onclick="joinBoard(true)">
+                        {{ white_player }}
                     </div>
                 </div>
             </div>
@@ -123,14 +136,15 @@
                 <div class="spectators">
                 </div>
             </div>
-            <div class="menu-paragraph-big">
-                recently saved games:
-                <div class="games">
-                    {% for game in games %}
-                        <div id="game-{{ game.game_id }}" class="saved-game"><input type="button" onclick="loadGame('{{ game.game_id }}')" value="load game" style="margin-right: 10px;" />{{ game.player_1_name }} : {{ game.player_2_name }}</div>
-                    {% endfor %}
-                </div>
-            </div>
+{#            <div class="menu-paragraph-big">#}
+{#                recently saved games:#}
+{#                <div class="games">#}
+{#                    {% for game in games %}#}
+{#                        <div id="game-{{ game.game_id }}" class="saved-game"><input type="button" onclick="loadGame('{{ game.game_id }}')" value="load game" style="margin-right: 10px;" />{{ game.player_1_name }} : {{ game.player_2_name }}</div>#}
+{#                    {% endfor %}#}
+{#                </div>#}
+{#            </div>#}
+            {% endif %}
         </div>
     </div>
     <input id="xmlns" type="hidden" value="http://www.w3.org/2000/svg">
