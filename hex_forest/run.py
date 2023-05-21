@@ -40,7 +40,7 @@ def start_websocket(unix: bool = True):
         asyncio.run(serve_websocket())
 
 def start_http():
-    HttpServer().run("127.0.0.1", config.http_port)
+    HttpServer().run("0.0.0.0", config.http_port)
 
 
 parser = ArgumentParser()
