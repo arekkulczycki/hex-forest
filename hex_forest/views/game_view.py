@@ -6,7 +6,7 @@ from japronto.response.py import Response
 from tortoise.exceptions import IntegrityError, DoesNotExist
 
 from hex_forest.common.board import Board, Cell
-from hex_forest.models import Player, Move
+from hex_forest.models import Player
 from hex_forest.models.game import Game, Status
 from hex_forest.views.base_view import BaseView
 
@@ -57,11 +57,10 @@ class GameView(BaseView):
             "show_swap": len(moves) == 1,
             "show_start": game.owner == player and game.status is Status.PENDING,
             "game_status": f"status: {Status(game.status).name.lower().replace('_', ' ')}",
-            "stones": [
-                Cell.render_stone(move.color, move.x, move.y)
-                for move in moves
-            ],
-            "marker": Cell.render_marker(last_move.color, last_move.x, last_move.y) if last_move else None
+            "stones": [Cell.render_stone(move.color, move.x, move.y) for move in moves],
+            "marker": Cell.render_marker(last_move.color, last_move.x, last_move.y)
+            if last_move
+            else None,
         }
         return await BaseView._view_base(request, "game.html", template_context)
 
@@ -74,7 +73,19 @@ class GameView(BaseView):
                 code=301,
                 mime_type="text/html",
                 headers={
+                    "Cache-Control": "no-store",
                     "Location": "/?warning=Sorry, can't start a new game as guest.",
+                },
+            )
+
+        active_games_count = await Game.filter(owner=player).count()
+        if active_games_count >= 3:
+            return request.Response(
+                code=301,
+                mime_type="text/html",
+                headers={
+                    "Cache-Control": "no-store",
+                    "Location": "/?warning=Can't have more than 3 active games.",
                 },
             )
 
@@ -86,6 +97,7 @@ class GameView(BaseView):
                 code=301,
                 mime_type="text/html",
                 headers={
+                    "Cache-Control": "no-store",
                     "Location": "/?warning=Sorry, can't start a new game as this time.",
                 },
             )
@@ -93,5 +105,5 @@ class GameView(BaseView):
         return request.Response(
             code=301,
             mime_type="text/html",
-            headers={"Location": f"/game/{game.id}"},
+            headers={"Cache-Control": "no-store", "Location": f"/game/{game.id}"},
         )

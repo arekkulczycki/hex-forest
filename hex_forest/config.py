@@ -2,8 +2,8 @@
 from pydantic import BaseSettings, Field
 
 VERSION_MAJOR: int = 0
-VERSION_MINOR: int = 2
-VERSION_PATCH: int = 4
+VERSION_MINOR: int = 3
+VERSION_PATCH: int = 0
 
 
 class Config(BaseSettings):

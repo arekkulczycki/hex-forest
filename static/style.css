@@ -336,6 +336,11 @@ a {
     text-transform: none;
 }
 
+.game_join {
+    margin-left: 1vw;
+    color: blue;
+}
+
 #coords {
     font-size: 2vw;
     font-weight: bold;

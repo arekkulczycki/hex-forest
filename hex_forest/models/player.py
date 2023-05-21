@@ -26,6 +26,7 @@ class Player(Model, OnlinePlayer):
     name: str = fields.CharField(pk=True, max_length=63)
     cookie: str = fields.CharField(max_length=63)
     google_account: str = fields.CharField(max_length=63, null=True)
+    # ip: str = fields.CharField(max_length=15, null=True)  # TODO: add validation to prevent creating multiple
 
     created_at: datetime = fields.DatetimeField(auto_now=True)
     last_heartbeat: datetime = fields.DatetimeField(auto_now=True)

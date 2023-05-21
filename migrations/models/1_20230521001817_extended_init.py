@@ -26,6 +26,10 @@ async def upgrade(db: BaseDBAsyncClient) -> str:
         ALTER TABLE "player" ALTER COLUMN "cookie" TYPE VARCHAR(63) USING "cookie"::VARCHAR(63);
         ALTER TABLE "game" ADD CONSTRAINT "fk_game_player_8c520076" FOREIGN KEY ("owner_id") REFERENCES "player" ("name") ON DELETE CASCADE;"""
 
+"""
+CREATE SEQUENCE "game_id_seq" OWNED BY "game.id";
+ALTER TABLE "game" ALTER COLUMN "id" SET DEFAULT nextval('game_id_seq');
+"""
 
 async def downgrade(db: BaseDBAsyncClient) -> str:
     return """

@@ -31,17 +31,23 @@
     <div class="lobby-column lobby-games">
         <h1 class="heading">your active games</h1>
         <ul role="list" class="lobby-list">
-            <li class="lobby-item"></li>
+            {% for game in your_games %}
+                <li class="lobby-item">black: <b>{{ game.black.name or "---" }}</b>,&nbsp; white: <b>{{ game.white.name or "---" }}</b> <a class="game_join" href="/game/{{ game.id }}">join</a></li>
+            {% endfor %}
         </ul>
 
         <h1 class="heading">other active games</h1>
         <ul role="list" class="lobby-list">
-            <li class="lobby-item"></li>
+            {% for game in other_games %}
+            <li class="lobby-item">black: <b>{{ game.black.name or "---" }}</b>,&nbsp; white: <b>{{ game.white.name or "---" }}</b> <a class="game_join" href="/game/{{ game.id }}">join</a></li>
+            {% endfor %}
         </ul>
 
         <h1 class="heading">finished games</h1>
         <ul role="list" class="lobby-list">
-            <li class="lobby-item"></li>
+            {% for game in finished_games %}
+            <li class="lobby-item">black: <b>{{ game.black.name or "---" }}</b>,&nbsp; white: <b>{{ game.white.name or "---" }}</b> <a class="game_join" href="/game/{{ game.id }}">join</a></li>
+            {% endfor %}
         </ul>
     </div>
     <div class="lobby-column lobby-players">
