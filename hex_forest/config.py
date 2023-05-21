@@ -14,6 +14,7 @@ class Config(BaseSettings):
     http_port: int
     ws_host: str
     ws_port: int
+    ws_unix_path: str
     db_url: str  # postgres://postgres:pass@db.host:5432/somedb
 
     @property

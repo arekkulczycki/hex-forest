@@ -65,6 +65,10 @@ function connect() {
             case 'swapped':
                 swapped(data);
                 break;
+                break;
+            case 'undo':
+                undo(data);
+                break;
             case 'chat_message':
                 chatMessage(data);
                 break;
@@ -321,7 +325,8 @@ function lgImport(game_id = null) {
 
 function sendUndo() {
     let message = {
-        'action': 'board_undo'
+        'action': 'board_undo',
+        'game_id': window.location.href.split('/').at(-1)
     };
     socket.send(JSON.stringify(message))
 }

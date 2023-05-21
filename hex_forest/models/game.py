@@ -59,20 +59,32 @@ class Game(Model):
         message_json = json.dumps(message)
 
         if self.owner.name in clients:
-            tasks.append(clients[self.owner.name].send(message_json))
+            try:
+                tasks.append(clients[self.owner.name].send(message_json))
+            except KeyError:
+                pass
 
         if self.white and self.white != self.owner and self.white.name in clients:
-            tasks.append(clients[self.white.name].send(message_json))
+            try:
+                tasks.append(clients[self.white.name].send(message_json))
+            except KeyError:
+                pass
 
         if self.black and self.black != self.owner and self.black.name in clients:
-            tasks.append(clients[self.black.name].send(message_json))
+            try:
+                tasks.append(clients[self.black.name].send(message_json))
+            except KeyError:
+                pass
 
         if message["action"] == "move":
             if await self.move_count == 0:
                 msg_json = json.dumps({
                     "action": "showSwap"
                 })
-                tasks.append(clients[self.white.name].send(msg_json))
+                try:
+                    tasks.append(clients[self.white.name].send(msg_json))
+                except KeyError:
+                    pass
 
             self._move_count_cache += 1
 

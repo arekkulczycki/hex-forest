@@ -31,6 +31,7 @@ class BoardCommunication:
                 "board_swap": self._handle_swap,
                 "board_start": self._handle_start,
                 "board_resign": self._handle_resign,
+                "board_undo": self._handle_undo,
             }
         )
 
@@ -197,7 +198,7 @@ class BoardCommunication:
         """"""
 
         game = await Game.get(id=data["game_id"]).prefetch_related(
-            "owner", "white", "black"
+            "owner", "white", "black", "moves"
         )
 
         if game.white == player:
@@ -239,3 +240,32 @@ class BoardCommunication:
 
     async def _handle_resign(self, player: Player, data: Dict) -> None:
         """"""
+
+    async def _handle_undo(self, player: Player, data: Dict) -> None:
+        """"""
+
+        game = await Game.get(id=data["game_id"]).prefetch_related(
+            "owner", "white", "black", "moves"
+        )
+        turn = await game.turn
+
+        if (turn and player == game.black) or (not turn and player == game.white):
+            move = await Move.filter(game=game).order_by("-index").first()
+            id_ = f"{move.x}-{move.y}-{move.color}"
+
+            message_dict = {
+                "action": "remove",
+                "id": id_,
+            }
+            send_to_game = game.send(
+                self.connected_clients_rev, message_dict
+            )
+            move_count = await game.move_count
+            await asyncio.wait([send_to_game, move.delete()])
+        else:
+            # not your turn
+            message_dict = {
+                "action": "alert",
+                "message": "can only undo your last move while your opponent turn",
+            }
+            await player.send(message_dict)
