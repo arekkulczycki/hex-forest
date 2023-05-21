@@ -222,7 +222,7 @@ class BoardCommunication:
             "owner", "white", "black"
         )
 
-        if game.owner == player:
+        if game.owner == player and game.white is not None and game.black is not None:
             game.status = Status.IN_PROGRESS
 
             message_dict = {
@@ -231,7 +231,11 @@ class BoardCommunication:
             await asyncio.wait([game.save(), game.send(self.connected_clients_rev, message_dict)])
         else:
             # only owner can start
-            pass
+            message_dict = {
+                "action": "alert",
+                "message": "cannot start yet",
+            }
+            await player.send(message_dict)
 
     async def _handle_resign(self, player: Player, data: Dict) -> None:
         """"""

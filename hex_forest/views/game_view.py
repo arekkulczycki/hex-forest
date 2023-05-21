@@ -56,7 +56,8 @@ class GameView(BaseView):
             "black_player": game.black.name if game.black else "join",
             "show_swap": len(moves) == 1,
             "show_start": game.owner == player and game.status is Status.PENDING,
-            "game_status": f"status: {Status(game.status).name.lower().replace('_', ' ')}",
+            "game_status": game.status,
+            "game_status_text": f"status: {Status(game.status).name.lower().replace('_', ' ')}",
             "stones": [Cell.render_stone(move.color, move.x, move.y) for move in moves],
             "marker": Cell.render_marker(last_move.color, last_move.x, last_move.y)
             if last_move

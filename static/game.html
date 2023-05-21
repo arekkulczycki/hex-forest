@@ -16,7 +16,10 @@
             <div class="over-board">
                 {% if mode != 'analysis' %}
                 <div id="status">
-                    {{ game_status }}
+                    {{ game_status_text }}
+                    {% if game_status == 0 %}
+                    <div>game owner can start the game</div>
+                    {% endif %}
                 </div>
                 {% if show_start %}
                 <div id="start">
