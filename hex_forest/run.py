@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from multiprocessing import Process
 
 from tortoise import Tortoise, run_async
-from websockets import serve
+from websockets import unix_serve
 
 from hex_forest.config import config
 from hex_forest.http_server import HttpServer
@@ -26,9 +26,13 @@ def start_websocket():
 
     async def serve_websocket():
         print("starting websocket server...")
-        async with serve(WsServer().listen, config.ws_host, config.ws_port):
+        async with unix_serve(WsServer().listen, path="/tmp/livehex-ws"):
             await asyncio.Future()  # run forever
     asyncio.run(serve_websocket())
+
+
+def start_http():
+    HttpServer().run("127.0.0.1", config.http_port)
 
 
 parser = ArgumentParser()
@@ -42,10 +46,10 @@ if args.target == "ws":
     start_websocket()
 
 elif args.target == "http":
-    HttpServer().run("0.0.0.0", config.http_port)
+    start_http()
 
 else:
     websocket_server = Process(target=start_websocket)
     websocket_server.start()
 
-    HttpServer().run("0.0.0.0", config.http_port)
+    start_http()

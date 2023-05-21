@@ -181,8 +181,9 @@ a {
     overflow: hidden;
     font-size: 1vw;
     font-weight: bolder;
-    background-color: #ffd5a1;
-    background-image: url('/wood-grain.png');
+    /*background-color: #ffd5a1;*/
+    background-color: #FFCF79;
+    /*background-image: url('/wood-grain.png');*/
     background-blend-mode: SOFT-LIGHT;
     font-family: monospace;
     cursor: pointer;
@@ -295,9 +296,10 @@ a {
     border: solid 1px black;
     padding: 1vw;
     overflow-y: scroll;
-    background-color: #ffd5a1; /* #FFCF79;*/
-    background-image: url('/wood-grain.png');
-    background-blend-mode: SOFT-LIGHT;
+    /*background-color: #ffd5a1;*/
+    background-color: #FFCF79;
+    /*background-image: url('/wood-grain.png');*/
+    /*background-blend-mode: SOFT-LIGHT;*/
     display: flex;
     flex-direction: column-reverse;
 }
@@ -321,7 +323,7 @@ a {
     stroke: black;
     stroke-width: 1.0;
     fill: #FFCF79;
-    background-image: url('/wood-grain.png');
+    /*background-image: url('/wood-grain.png');*/
     background-blend-mode: SOFT-LIGHT;
     pointer-events: visible;
 }

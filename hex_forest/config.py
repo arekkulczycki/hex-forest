@@ -11,7 +11,6 @@ class Config(BaseSettings):
     Project settings.
     """
 
-    target: str = Field(default="remote")
     http_port: int
     ws_host: str
     ws_port: int

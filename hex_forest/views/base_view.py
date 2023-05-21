@@ -9,6 +9,8 @@ from jinja2 import Template
 from hex_forest.config import config
 from hex_forest.models import Player
 
+TRANSFER_HIGH_LIMIT: int = 50 * 1025
+
 
 class BaseView:
     """
@@ -24,6 +26,8 @@ class BaseView:
     ) -> Response:
         if headers is None:
             headers = {}
+
+        request.transport.set_write_buffer_limits(high=TRANSFER_HIGH_LIMIT)
 
         template_context["version"] = config.version
         template_context["websocket_address"] = f"ws://{config.ws_host}:{config.ws_port}"

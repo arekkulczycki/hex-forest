@@ -84,17 +84,22 @@ class WsServer(BoardCommunication, ChatCommunication):
     async def _unregister(self, websocket: WebSocketServerProtocol) -> None:
         """"""
 
-        player = self.connected_clients[websocket]
-        del self.connected_clients[websocket]
-        del self.connected_clients_rev[player.name]
+        try:
+            player = self.connected_clients[websocket]
+        except KeyError:
+            print("unknown user unregistered")
+            pass
+        else:
+            del self.connected_clients[websocket]
+            del self.connected_clients_rev[player.name]
 
-        await self.broadcast(
-            {
-                "action": "leaved",
-                "player_name": player.name,
-                "registered": bool(player.cookie),
-            }
-        )
+            await self.broadcast(
+                {
+                    "action": "leaved",
+                    "player_name": player.name,
+                    "registered": bool(player.cookie),
+                }
+            )
 
     async def _handle_message(
         self, websocket: WebSocketServerProtocol, data: Dict
