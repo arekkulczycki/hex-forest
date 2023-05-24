@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
@@ -18,6 +19,7 @@ class Move(Model):
     A move played in an existing game.
     """
 
+    id: int = fields.IntField(pk=True)
     game: Game = fields.ForeignKeyField("models.Game", related_name="moves")
     index: int = fields.IntField()
     x: int = fields.IntField()
@@ -25,6 +27,10 @@ class Move(Model):
 
     done_at: datetime = fields.DatetimeField(auto_now=True)
     seconds_left: Optional[int] = fields.IntField(null=True)
+
+    class Meta:
+        unique_together = (("game", "index"), )
+
 
     @property
     def color(self) -> Color:
@@ -37,3 +43,20 @@ class Move(Model):
     @property
     def player(self) -> Player:
         return self.game.white if self.color else self.game.black
+
+    def fake(self) -> FakeMove:
+        return FakeMove(index=self.index, x=self.x, y=self.y)
+
+
+@dataclass
+class FakeMove:
+    index: int
+    x: int
+    y: int
+
+    @property
+    def color(self) -> Color:
+        return self.index % 2 != 0
+
+    def __hash__(self):  # TODO: add proper type hint
+        return hash((self.index, self.x, self.y))

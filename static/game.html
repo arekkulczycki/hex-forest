@@ -18,7 +18,7 @@
                 <div id="status">
                     {{ game_status_text }}
                     {% if game_status == 0 %}
-                    <div>game owner can start the game</div>
+                    <div>{{ owner }} can start the game</div>
                     {% endif %}
                 </div>
                 {% if show_start %}
@@ -65,7 +65,7 @@
                 {% for row in rows %}
                     {% set outer_loop = loop %}
                     {% for cell in row %}
-                        <polygon id="{{ cell.id }}" points="{{ cell.points }}" class="cell" onmouseover="boardHover('{{ cell.id }}')" onclick="boardClick({{ outer_loop.index0 }}, {{ loop.index0 }})"></polygon>
+                        <polygon id="{{ cell.id }}" points="{{ cell.points }}" class="cell" onmouseout="boardUnhover('{{ cell.id }}')" onmouseover="boardHover('{{ cell.id }}')" onclick="boardClick({{ loop.index0 }}, {{ outer_loop.index0 }})"></polygon>
                     {% endfor %}
                 {% endfor %}
                 {% for stone in stones %}
@@ -92,11 +92,19 @@
 {#            <div class="menu-paragraph" style="display: none;">#}
 {#                <label for="opening-decoded">opening:&nbsp;</label><input id="opening-decoded" type="text" class="input" disabled="disabled">#}
 {#            </div>#}
-            <div class="menu-paragraph">
+            <div class="menu-paragraph horizontal">
                 <span id="color_title" style="margin-right: 20px;">stone color:</span>
                     <input id="color_alternate" type="checkbox" onclick="toggleColor(0)" checked="checked"><label for="color_alternate" style="margin-right: 20px;">alternate</label>
                     <input id="color_black" type="checkbox" onclick="toggleColor(1)"><label for="color_black" style="margin-right: 20px;">black</label>
                     <input id="color_white" type="checkbox" onclick="toggleColor(2)"><label for="color_white" style="margin-right: 20px;">white</label>
+            </div>
+            <div class="menu-paragraph">
+                <a href="javascript:window.location=getArchiveUrl();" style="color: black; text-decoration: none;"><div style="margin-top: 2vw;">load archive:</div></a>
+                <ul role="list" class="lobby-list">
+                    {% for game in archive_games %}
+                        <li class="lobby-item archive-item" onmouseout="boardUnhover('{{ game.next_move }}')" onmouseover="boardHover('{{ game.next_move }}')"><div style="font-weight: bolder;">{{ game.next_move }}</div><div>{{ game.number }} games</div><div style="background: linear-gradient(to right, black {{ game.black_prc }}%, white {{ game.black_prc }}%);">{{ game.black_prc }}%</div></li>
+                    {% endfor %}
+                </ul>
             </div>
             {% endif %}
             {% if mode != "analysis" %}
@@ -134,7 +142,7 @@
                     <input type="button" class="button" value="send" onclick="sendMessage()" {% if mode == 'analysis' %} disabled="disabled" {% endif %}>
                 </div>
             </div>
-            <div class="menu-paragraph-big">
+            <div class="menu-paragraph">
                 spectators:
                 <div class="spectators">
                 </div>

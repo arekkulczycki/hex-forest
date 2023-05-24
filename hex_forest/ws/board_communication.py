@@ -4,6 +4,7 @@ import traceback
 from typing import Awaitable, Callable, Dict
 
 from tortoise.exceptions import IntegrityError
+from tortoise.timezone import now
 from websockets.legacy.server import WebSocketServerProtocol
 
 from hex_forest.common.board import Cell
@@ -47,20 +48,12 @@ class BoardCommunication:
     async def _handle_analysis_put(self, player: Player, data: Dict) -> None:
         """"""
 
-        color_mode = data["color_mode"]
-        last_move_color = data["last_move_color"]
-        row: int = data["row"]
-        column: int = data["column"]
-
-        if color_mode == "alternate":
-            color = not last_move_color
-        elif color_mode == "black":
-            color = False
-        else:
-            color = True
+        color = data["color"]
+        x: int = data["x"]
+        y: int = data["y"]
 
         await player.send(
-            BoardCommunication.get_move_message_dict(player, color, row, column)
+            BoardCommunication.get_move_message_dict(player, color, x, y)
         )
 
     async def _handle_game_put(self, player: Player, data: Dict) -> None:
@@ -76,17 +69,23 @@ class BoardCommunication:
             column: int = data["column"]
 
             send_to_game = game.send(
-                self.connected_clients_rev, BoardCommunication.get_move_message_dict(player, turn, row, column)
+                self.connected_clients_rev,
+                BoardCommunication.get_move_message_dict(player, turn, row, column),
             )
             move_count = await game.move_count
-            await asyncio.wait([send_to_game, Move.create(game=game, x=row, y=column, index=move_count)])
+            await asyncio.wait(
+                [
+                    send_to_game,
+                    Move.create(game=game, x=row, y=column, index=move_count),
+                ]
+            )
         else:
             # not your turn
             pass
 
     @staticmethod
     def get_move_message_dict(
-        player: Player, color: bool, row: int, column: int
+        player: Player, color: bool, x: int, y: int
     ) -> Dict:
         """"""
 
@@ -94,11 +93,11 @@ class BoardCommunication:
             "action": "move",
             "move": {
                 "color": color,
-                "id": f"{row}-{column}-{color}",
-                "cx": Cell.stone_x(row, column),
-                "cy": Cell.stone_y(row),
+                "id": f"{x}-{y}-{color}",
+                "cx": Cell.stone_x(y, x),
+                "cy": Cell.stone_y(y),
             },
-            "message": f"Player {player.name} has clicked cell {chr(column + 97)}{row + 1}",
+            "message": f"Player {player.name} has clicked cell {chr(x + 97)}{y + 1}",
         }
 
     async def _handle_remove(self, player: Player, data: Dict) -> None:
@@ -208,10 +207,10 @@ class BoardCommunication:
 
             game.swapped = True
 
-            message_dict = {
-                "action": "swapped"
-            }
-            await asyncio.wait([game.save(), game.send(self.connected_clients_rev, message_dict)])
+            message_dict = {"action": "swapped"}
+            await asyncio.wait(
+                [game.save(), game.send(self.connected_clients_rev, message_dict)]
+            )
         else:
             # cannot swap as black
             pass
@@ -224,12 +223,13 @@ class BoardCommunication:
         )
 
         if game.owner == player and game.white is not None and game.black is not None:
+            game.started_at = now()
             game.status = Status.IN_PROGRESS
 
-            message_dict = {
-                "action": "gameStarted"
-            }
-            await asyncio.wait([game.save(), game.send(self.connected_clients_rev, message_dict)])
+            message_dict = {"action": "gameStarted"}
+            await asyncio.wait(
+                [game.save(), game.send(self.connected_clients_rev, message_dict)]
+            )
         else:
             # only owner can start
             message_dict = {
@@ -240,6 +240,29 @@ class BoardCommunication:
 
     async def _handle_resign(self, player: Player, data: Dict) -> None:
         """"""
+
+        game = await Game.get(id=data["game_id"]).prefetch_related(
+            "owner", "white", "black", "moves"
+        )
+
+        result = (
+            Status.WHITE_WON
+            if player == game.black
+            else Status.BLACK_WON
+            if player == game.white
+            else None
+        )
+        if result:
+            game.status = result
+            game.finished_at = now()
+
+            message_dict = {
+                "action": "resigned",
+                "color": True if result == Status.BLACK_WON else False,
+            }
+            await asyncio.wait(
+                [game.send(self.connected_clients_rev, message_dict), game.save()]
+            )
 
     async def _handle_undo(self, player: Player, data: Dict) -> None:
         """"""
@@ -257,10 +280,7 @@ class BoardCommunication:
                 "action": "remove",
                 "id": id_,
             }
-            send_to_game = game.send(
-                self.connected_clients_rev, message_dict
-            )
-            move_count = await game.move_count
+            send_to_game = game.send(self.connected_clients_rev, message_dict)
             await asyncio.wait([send_to_game, move.delete()])
         else:
             # not your turn

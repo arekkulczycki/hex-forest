@@ -52,14 +52,15 @@ class GameView(BaseView):
         template_context = {
             "size": size,
             "rows": board.rows,
+            "owner": game.owner.name,
             "white_player": game.white.name if game.white else "join",
             "black_player": game.black.name if game.black else "join",
             "show_swap": len(moves) == 1,
             "show_start": game.owner == player and game.status is Status.PENDING,
             "game_status": game.status,
             "game_status_text": f"status: {Status(game.status).name.lower().replace('_', ' ')}",
-            "stones": [Cell.render_stone(move.color, move.x, move.y) for move in moves],
-            "marker": Cell.render_marker(last_move.color, last_move.x, last_move.y)
+            "stones": [Cell.render_stone(move.color, move.y, move.x) for move in moves],
+            "marker": Cell.render_marker(last_move.color, last_move.y, last_move.x)
             if last_move
             else None,
         }

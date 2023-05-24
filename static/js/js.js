@@ -9,6 +9,8 @@ var timeout = null;
 var lastMoveColor = true;
 
 function connect() {
+    window.history.pushState({}, document.title, window.location.pathname);
+
     let wsAddress = script.getAttribute('ws-address');
     socket = new WebSocket(wsAddress);
 
@@ -234,26 +236,38 @@ function removePlayer(player_id, player_name) {
     }
 }
 
-function boardClick(row, column) {
+function boardClick(x, y) {
     let colorMode = $('#color_alternate').prop('checked') ? 'alternate' :
         ($('#color_black').prop('checked') ? 'black' : 'white');
 
-    $('#board').find('circle').length
+    let color
+    if (colorMode == 'alternate') {
+        let moves = getAllMoves();
+        let nWhiteMoves = moves.filter(x => x.color).length;
+        let nBlackMoves = moves.length - nWhiteMoves;
+        color = nWhiteMoves < nBlackMoves;
+    } else {
+        color = colorMode === 'white'
+    }
+
+    let is_analysis = window.location.pathname.indexOf('/analysis') !== -1
 
     let message = {
         'action': 'board_put',
-        'mode': window.location.pathname === '/analysis' ? 'analysis' : 'game',
-        'game_id': window.location.pathname === '/analysis' ? null : window.location.href.split('/').at(-1),
-        'row': row,
-        'column': column,
-        'color_mode': colorMode,
-        'last_move_color': lastMoveColor,
+        'mode': is_analysis ? 'analysis' : 'game',
+        'game_id': is_analysis ? null : window.location.href.split('/').at(-1),
+        'x': x,
+        'y': y,
+        'color': color,
     };
     socket.send(JSON.stringify(message))
 }
 
 function boardHover(id) {
     $('#coords').html(id);
+
+    $(`#${id}`).addClass('hover');
+
     if (timeout != null) {
         clearTimeout(timeout);
     }
@@ -261,6 +275,10 @@ function boardHover(id) {
     timeout = setTimeout(() => {
         $('#coords').html('');
     }, 1000);
+}
+
+function boardUnhover(id) {
+    $(`#${id}`).removeClass('hover');
 }
 
 function sendStore(winningPlayerId) {
@@ -348,9 +366,11 @@ function startGame() {
 }
 
 function sendClearBoard() {
+    let is_analysis = window.location.pathname.indexOf('/analysis') !== -1
+
     let message = {
         'action': 'board_clear',
-        'mode': window.location.pathname === '/analysis' ? 'analysis' : 'game'
+        'mode': is_analysis ? 'analysis' : 'game'
     };
     socket.send(JSON.stringify(message));
 }
@@ -362,10 +382,12 @@ function clearBoard() {
 }
 
 function sendRemoveStone(id) {
+    let is_analysis = window.location.pathname.indexOf('/analysis') !== -1
+
     let message = {
         'action': 'board_remove',
         'id': id,
-        'mode': window.location.pathname === '/analysis' ? 'analysis' : 'game'
+        'mode': is_analysis ? 'analysis' : 'game'
     };
     socket.send(JSON.stringify(message))
 }
@@ -552,13 +574,24 @@ function toggleColor(type) {
     }
 }
 
-function setNameUrl() {
-    let name = $('#name-setting').val();
+function getNameUrl() {
+    let name = $('#name-input').val();
     return `/login/${name}`
 }
 
+function getImportUrl() {
+    let input = $('#import-input').val();
+    if (isNaN(input)) {
+        return `/archive/lg_bulk_import/${input}`
+    }
+    return `/archive/lg_import/${input}`
+}
+
+function getArchiveUrl() {
+    return `/analysis/${getAllMovesUrl()}`
+}
+
 function showWarning() {
-    window.history.pushState({}, document.title, window.location.pathname);
     let warning = $('#warning') ?? null;
     if (warning) {
         alert(warning.html());
@@ -652,4 +685,26 @@ function swapped() {
     let blackText = black.html();
     black.html(white.html());
     white.html(blackText);
+}
+
+function getAllMoves() {
+    let moves = [];
+    $('#board').find('circle').each((i, e) => {
+        if (e.id !== 'lastMoveMarker') {
+            let color = $(e).attr('fill') === 'white';
+            let split = e.id.split('-')
+            moves.push({'color': color, 'x': split[0], 'y': split[1]});
+        }
+    });
+    return moves;
+}
+
+function getAllMovesUrl() {
+    let moves = [];
+    $('#board').find('circle').each((i, e) => {
+        if (e.id !== 'lastMoveMarker') {
+            moves.push(e.id);
+        }
+    });
+    return moves.join(',');
 }

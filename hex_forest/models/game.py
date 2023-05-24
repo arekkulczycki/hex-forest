@@ -5,12 +5,16 @@ import asyncio
 import json
 from datetime import datetime
 from enum import IntEnum
-from typing import TYPE_CHECKING, Dict, Optional
+from typing import TYPE_CHECKING, Dict, Optional, List
 
 from tortoise import Model, fields
 from websockets.legacy.server import WebSocketServerProtocol
 
+from hex_forest.models.archive_record import ArchiveRecord
+
 if TYPE_CHECKING:
+    from hex_forest.models import Move
+    from hex_forest.models.move import FakeMove
     from hex_forest.models.player import Player
     from hex_forest.ws_server import PlayerName
 
@@ -38,6 +42,7 @@ class Game(Model):
         "models.Player", related_name="games_black", null=True
     )
     status: Status = fields.IntEnumField(Status, default=Status.PENDING)
+    board_size: int = fields.IntField(default=13)
     swapped: bool = fields.BooleanField(default=False)
 
     started_at: Optional[datetime] = fields.DatetimeField(null=True)
@@ -46,6 +51,10 @@ class Game(Model):
     # game settings
     timer_seconds: Optional[int] = fields.IntField(null=True)
     increment_seconds: Optional[int] = fields.IntField(null=True)
+
+    lg_import_id = fields.CharField(max_length=7, unique=True, null=True)
+
+    moves: fields.ReverseRelation["Move"]
 
     _move_count_cache: Optional[int] = None
 
@@ -78,9 +87,7 @@ class Game(Model):
 
         if message["action"] == "move":
             if await self.move_count == 0:
-                msg_json = json.dumps({
-                    "action": "showSwap"
-                })
+                msg_json = json.dumps({"action": "showSwap"})
                 try:
                     tasks.append(clients[self.white.name].send(msg_json))
                 except KeyError:
@@ -107,3 +114,17 @@ class Game(Model):
         """
 
         return await self.move_count % 2 == 1
+
+    async def save(self, *args, **kwargs) -> None:
+        await super().save(*args, **kwargs)
+
+        if ArchiveRecord.archive_record_cache.on and self.status in [Status.BLACK_WON, Status.WHITE_WON]:
+            await self.invalidate_archive_record_cache()
+
+    async def invalidate_archive_record_cache(self) -> None:
+        moves: List[FakeMove] = [move.fake() for move in await self.moves.filter(
+            index__lt=ArchiveRecord.archive_record_cache.maxlistlength
+        )]
+
+        for i in range(ArchiveRecord.archive_record_cache.maxlistlength):
+            ArchiveRecord.archive_record_cache.invalidate(moves[:i+1])

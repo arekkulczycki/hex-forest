@@ -10,6 +10,7 @@ from tortoise.exceptions import IntegrityError
 from tortoise.timezone import now
 
 from hex_forest.config import config
+from hex_forest.constants import LG_IMPORT_OWNER_NAME
 from hex_forest.models import Player, Game
 from hex_forest.models.game import Status
 from hex_forest.views.base_view import BaseView
@@ -30,10 +31,13 @@ class LobbyView(BaseView):
     async def lobby(request: Request) -> Response:
         websocket_address = f"ws://{config.ws_host}:{config.ws_port}/"
         cookie = request.cookies.get("livehex-pin")
-        players, games = await asyncio.gather(
-            Player.all(),
-            Game.all()
+        players, active_games, finished_games = await asyncio.gather(
+            Player.exclude(name__startswith=LG_IMPORT_OWNER_NAME).all(),
+            Game.filter(status__in=[Status.PENDING, Status.IN_PROGRESS])
             .order_by("status", "-started_at")
+            .prefetch_related("white", "black"),
+            Game.filter(status__in=[Status.BLACK_WON, Status.WHITE_WON]).limit(10)
+            .order_by("-started_at")
             .prefetch_related("white", "black"),
         )
 
@@ -42,8 +46,8 @@ class LobbyView(BaseView):
             players, cookie, now_
         )
 
-        your_games, other_games, finished_gammes = LobbyView._collect_games(
-            games, player
+        your_games, other_games = LobbyView._collect_games(
+            active_games, player
         )
 
         template_context = {
@@ -54,7 +58,8 @@ class LobbyView(BaseView):
             "players_offline": players_offline,
             "your_games": your_games,
             "other_games": other_games,
-            "finished_gammes": finished_gammes,
+            "finished_games": finished_games,
+            "is_admin": player and player.name == "Arek",
         }
 
         if player:
@@ -86,23 +91,19 @@ class LobbyView(BaseView):
     @staticmethod
     def _collect_games(
         games: List[Game], player: Optional[Player]
-    ) -> Tuple[List, List, List]:
+    ) -> Tuple[List, List]:
         """"""
 
         your_games = []
         other_games = []
-        finished_games = []
 
         for game in games:
-            if game.status in [Status.PENDING, Status.IN_PROGRESS]:
-                if player and player == game.white or player == game.black:
-                    your_games.append(game)
-                else:
-                    other_games.append(game)
+            if player and player == game.white or player == game.black:
+                your_games.append(game)
             else:
-                finished_games.append(game)
+                other_games.append(game)
 
-        return your_games, other_games, finished_games
+        return your_games, other_games
 
     @staticmethod
     async def _update_player_heartbeat(player: Player, now_: datetime) -> None:
@@ -120,6 +121,9 @@ class LobbyView(BaseView):
         cookie: str = str(randint(100000, 999999))
 
         try:
+            if name.startswith(LG_IMPORT_OWNER_NAME):
+                raise IntegrityError
+
             await Player.create(name=name, cookie=cookie)
         except IntegrityError:
             return request.Response(

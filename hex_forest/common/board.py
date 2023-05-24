@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from typing import Tuple
 
 
 class Board:
@@ -67,20 +68,36 @@ class Cell:
         return ' '.join(points)
 
     @staticmethod
-    def render_stone(color: bool, row: int, column: int) -> str:
+    def render_stone(color: bool, y: int, x: int) -> str:
         """"""
 
-        id_ = f"{row}-{column}-{color}"
+        id_ = f"{x}-{y}-{color}"
         text_color = "white" if color else "black"
-        cx = Cell.stone_x(row, column)
-        cy = Cell.stone_y(row)
+        cx = Cell.stone_x(y, x)
+        cy = Cell.stone_y(y)
         return f'<circle id="{id_}" cx="{cx}" cy="{cy}" r="11.0" fill="{text_color}" onclick="sendRemoveStone(\'{id_}\')"></circle>'
 
     @staticmethod
-    def render_marker(color: bool, row: int, column: int) -> str:
+    def render_marker(color: bool, y: int, x: int) -> str:
         """"""
 
-        id_ = f"{row}-{column}-{color}"
-        cx = Cell.stone_x(row, column)
-        cy = Cell.stone_y(row)
+        id_ = f"{x}-{y}-{color}"
+        cx = Cell.stone_x(y, x)
+        cy = Cell.stone_y(y)
         return f'<circle id="lastMoveMarker" cx="{cx}" cy="{cy}" r="6.0" fill="red" onclick="sendRemoveStone(\'{id_}\')"></circle>'
+
+    @staticmethod
+    def reverse(x: int, y: int, size: int) -> Tuple[int, int]:
+        """
+        Get equivalent move but mirrored across short diagonal (or 180 deg rotation).
+        """
+
+        return size - x - 1, size - y - 1
+
+    @staticmethod
+    def swap(x: int, y: int) -> Tuple[int, int]:
+        """
+        Get equivalent move for opposite color, i.e. mirrored across long diagonal.
+        """
+
+        return y, x

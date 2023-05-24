@@ -7,9 +7,10 @@ from japronto.request.crequest import Request
 from japronto.response.py import Response
 
 from hex_forest.views import LobbyView, GameView, AnalysisView
+from hex_forest.views.archive_view import ArchiveView
 
 
-class HttpServer(LobbyView, GameView, AnalysisView):
+class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView):
     """
     Japronto web server.
     """

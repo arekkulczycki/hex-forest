@@ -127,6 +127,25 @@ a {
 
 .lobby-item {
     list-style: none;
+    white-space: nowrap;
+}
+.archive-item div {
+    display: inline-block;
+    margin-bottom: 0.5vw;
+}
+.archive-item div:nth-child(1) {
+    width: 3vw;
+}
+.archive-item div:nth-child(2) {
+    width: 8vw;
+}
+.archive-item div:nth-child(3) {
+    width: 8vw;
+    height: 1.1vw;
+    vertical-align: text-top;
+    font-size: 0.8vw;
+    color: #FFCF79;
+    text-align: center;
 }
 
 .heading {
@@ -152,12 +171,12 @@ a {
     cursor: pointer;
 }
 
-#name-setting {
+.setting-input {
     height: 2vw;
     width: 12vw;
     font-size: 1vw;
 }
-.name-setting {
+.setting {
     margin-top: 2vw;
 }
 
@@ -268,7 +287,11 @@ a {
 
 .menu-paragraph {
     display: flex;
+    flex-direction: column;
     margin: 0.5vw 0;
+}
+.horizontal {
+    flex-direction: row;
 }
 
 .menu-paragraph-big {
@@ -328,7 +351,7 @@ a {
     pointer-events: visible;
 }
 
-.cell:hover {
+.cell.hover {
     fill: #efc27d;
 }
 
