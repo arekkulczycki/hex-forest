@@ -70,7 +70,9 @@ function connect() {
             case 'chat_message':
                 chatMessage(data);
                 break;
-
+            case 'resigned':
+                handleResigned(data);
+                break;
 
             case 'undo':
                 undo(data);
@@ -344,6 +346,14 @@ function lgImport(game_id = null) {
 function sendUndo() {
     let message = {
         'action': 'board_undo',
+        'game_id': window.location.href.split('/').at(-1)
+    };
+    socket.send(JSON.stringify(message))
+}
+
+function sendResign() {
+    let message = {
+        'action': 'board_resign',
         'game_id': window.location.href.split('/').at(-1)
     };
     socket.send(JSON.stringify(message))
@@ -737,4 +747,11 @@ function copyLink() {
     } finally {
         textArea.remove();
     }
+}
+
+function handleResigned(data) {
+    let color = data['color'] ? ' black ' : ' white ';
+    $('#status').html(`status: ${color} won`);
+
+    $('#game-in-progress-options').hide();
 }

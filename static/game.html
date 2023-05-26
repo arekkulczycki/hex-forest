@@ -26,12 +26,19 @@
                     <input type="button" class="button" value="start" onclick="startGame()">
                 </div>
                 {% endif %}
-                <div id="undo">
-                    <input type="button" class="button" value="undo" onclick="sendUndo()">
+                {% if game_status < 2 %}
+                <div id="game-in-progress-options">
+                    <div id="undo">
+                        <input type="button" class="button" value="undo" onclick="sendUndo()">
+                    </div>
+                    <div id="resign">
+                        <input type="button" class="button" value="resign" onclick="sendResign()">
+                    </div>
+                    <div id="swap" style="visibility: {% if show_swap %}visible{% else %}hidden{% endif %}">
+                        <input type="button" class="button" value="swap" onclick="sendSwap()">
+                    </div>
                 </div>
-                <div id="swap" style="visibility: {% if show_swap %}visible{% else %}hidden{% endif %}">
-                    <input type="button" class="button" value="swap" onclick="sendSwap()">
-                </div>
+                {% endif %}
                 {% endif %}
                 <div id="coords">
 

@@ -60,21 +60,21 @@ class BoardCommunication:
         game = await Game.get(id=data["game_id"]).prefetch_related(
             "owner", "white", "black", "moves"
         )
-        turn = await game.turn
+        color = await game.turn
 
-        if (turn and player == game.white) or (not turn and player == game.black):
-            row: int = data["row"]
-            column: int = data["column"]
+        if (color and player == game.white) or (not color and player == game.black):
+            x: int = data["x"]
+            y: int = data["y"]
 
             send_to_game = game.send(
                 self.connected_clients_rev,
-                BoardCommunication.get_move_message_dict(player, turn, row, column),
+                BoardCommunication.get_move_message_dict(player, color, x, y),
             )
             move_count = await game.move_count
             await asyncio.wait(
                 [
                     send_to_game,
-                    Move.create(game=game, x=row, y=column, index=move_count),
+                    Move.create(game=game, x=x, y=y, index=move_count),
                 ]
             )
         else:
