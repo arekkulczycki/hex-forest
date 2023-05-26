@@ -123,6 +123,7 @@ a {
     padding: 0;
     text-align: left;
     font-size: 1vw;
+    margin: 0.5vw;
 }
 
 .lobby-item {
@@ -170,13 +171,16 @@ a {
     white-space: nowrap;
     cursor: pointer;
 }
+.tight {
+    margin: 0.2vw 0;
+}
 
-.setting-input {
+.lobby-setting-input {
     height: 2vw;
     width: 12vw;
     font-size: 1vw;
 }
-.setting {
+.lobby-setting {
     margin-top: 2vw;
 }
 
@@ -288,7 +292,7 @@ a {
 .menu-paragraph {
     display: flex;
     flex-direction: column;
-    margin: 0.5vw 0;
+    margin: 1vw 0;
 }
 .horizontal {
     flex-direction: row;
@@ -297,7 +301,6 @@ a {
 .menu-paragraph-big {
     font-size: 1vw;
     font-weight: bold;
-    margin: 30px 0;
 }
 
 .spectators {

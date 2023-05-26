@@ -89,7 +89,7 @@ class BoardCommunication:
             "action": "move",
             "move": {
                 "color": color,
-                "id": f"{x}-{y}-{color}",
+                "id": Cell.stone_id(x, y, color),
                 "cx": Cell.stone_x(y, x),
                 "cy": Cell.stone_y(y),
             },

@@ -22,23 +22,27 @@ class Board:
 
 class Cell:
 
-    def __init__(self, r, c):
-        r = int(r)
-        c = int(c)
-        if r < 0 or c < 0:
+    def __init__(self, y, x):
+        r = int(y)
+        c = int(x)
+        if y < 0 or x < 0:
             raise Exception
-        self.id = f'{chr(c + 97)}{r + 1}'
-        self.points = self.generate_points(r, c)
+        self.id = f'{chr(x + 97)}{y + 1}'
+        self.points = self.generate_points(y, x)
         self.width = 15.07
         self.state = 0  # 0-empty, 1-black, 2-white
 
     @classmethod
-    def stone_x(cls, r, c):
-        return 60.0 + c * 30 + r * 15
+    def stone_id(cls, x, y, color):
+        return f"{x}-{y}-{int(color)}"
 
     @classmethod
-    def stone_y(cls, r):
-        return 30 + r * 25.98
+    def stone_x(cls, y, x):
+        return 60.0 + x * 30 + y * 15
+
+    @classmethod
+    def stone_y(cls, y):
+        return 30 + y * 25.98
 
     @staticmethod
     def generate_points(r, c):
@@ -71,7 +75,7 @@ class Cell:
     def render_stone(color: bool, y: int, x: int) -> str:
         """"""
 
-        id_ = f"{x}-{y}-{color}"
+        id_ = Cell.stone_id(x, y, color)
         text_color = "white" if color else "black"
         cx = Cell.stone_x(y, x)
         cy = Cell.stone_y(y)

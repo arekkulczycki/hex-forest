@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from tortoise import Model, fields
 
-from hex_forest.common.cache import SingleArgAsyncCache
+from hex_forest.common.cache import ArchiveRecordCache
 
 
 class ArchiveRecord(Model):
@@ -14,8 +14,8 @@ class ArchiveRecord(Model):
     x: int = fields.IntField()
     y: int = fields.IntField()
 
-    archive_record_cache: SingleArgAsyncCache = SingleArgAsyncCache(maxsize=4**8)
-    """Each key equals to ~ 50 bytes, therefore equalling to cached memory in total ~ 3 MB."""
+    archive_record_cache: ArchiveRecordCache = ArchiveRecordCache(maxsize=4**8)
+    """Each key equals to ~ 50 bytes, therefore equalling to cached memory in total ~3 MB per board size."""
 
     @property
     def black_prc(self) -> int:
@@ -23,4 +23,4 @@ class ArchiveRecord(Model):
 
     @property
     def next_move(self) -> str:
-        return f"{chr(self.y + 97)}{self.x + 1}"
+        return f"{chr(self.x + 97)}{self.y + 1}"

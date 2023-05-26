@@ -79,7 +79,9 @@
         <div class="menu-container">
             {% if mode == "analysis" %}
             <div class="menu-paragraph">
-                <input type="button" class="button" value="clear board" onclick="sendClearBoard()">
+                <input type="button" class="button tight" value="clear board" onclick="sendClearBoard()">
+                <a href="javascript:window.location=getRotateUrl();"><input type="button" class="button tight" value="rotate 180" onclick="rotate()"></a>
+                <input type="button" class="button tight" value="copy link" onclick="copyLink()">
             </div>
 {#            <div class="menu-paragraph">#}
 {#                <input type="button" class="button" value="save game" onclick="saveGame()">#}
@@ -99,7 +101,8 @@
                     <input id="color_white" type="checkbox" onclick="toggleColor(2)"><label for="color_white" style="margin-right: 20px;">white</label>
             </div>
             <div class="menu-paragraph">
-                <a href="javascript:window.location=getArchiveUrl();" style="color: black; text-decoration: none;"><div style="margin-top: 2vw;">load archive:</div></a>
+                <div></div>
+                <a href="javascript:window.location=getArchiveUrl();" style="color: black; text-decoration: none;"><input type="button" class="button tight" value="reload archive"></a>
                 <ul role="list" class="lobby-list">
                     {% for game in archive_games %}
                         <li class="lobby-item archive-item" onmouseout="boardUnhover('{{ game.next_move }}')" onmouseover="boardHover('{{ game.next_move }}')"><div style="font-weight: bolder;">{{ game.next_move }}</div><div>{{ game.number }} games</div><div style="background: linear-gradient(to right, black {{ game.black_prc }}%, white {{ game.black_prc }}%);">{{ game.black_prc }}%</div></li>

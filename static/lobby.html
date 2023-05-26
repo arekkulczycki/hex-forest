@@ -22,14 +22,14 @@
         <a href="/analysis"><button class="button">analysis board</button></a>
         <a href="" onclick="alert('sorry, not implemented yet :(')"><button class="button">settings</button></a>
         {% if not is_logged %}
-        <div class="setting">
-            <input id="name-input" class="setting-input" type="text" placeholder="your name">
+        <div class="lobby-setting">
+            <input id="name-input" class="lobby-setting-input" type="text" placeholder="your name">
             <a href="javascript:window.location=getNameUrl();"><button class="button">set my name</button></a>
         </div>
         {% endif %}
         {% if is_admin %}
-        <div class="setting">
-            <input id="import-input" class="setting-input" type="text" placeholder="lg game id">
+        <div class="lobby-setting">
+            <input id="import-input" class="lobby-setting-input" type="text" placeholder="lg game id">
             <a href="javascript:window.location=getImportUrl();"><button class="button">import lg game</button></a>
         </div>
         {% endif %}

@@ -122,4 +122,4 @@ class Game(Model):
 
         if len(moves) > 20:
             for i in range(ArchiveRecord.archive_record_cache.maxlistlength):
-                ArchiveRecord.archive_record_cache.invalidate(moves[:i+1])
+                ArchiveRecord.archive_record_cache.invalidate(tuple(moves[:i+1]), self.board_size)

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from functools import wraps
+from typing import Tuple
 
 from cache.lru import LRU
 
 
-class SingleArgAsyncCache:
+class ArchiveRecordCache:
     """
     Cache async function results that take exactly one argument.
     """
@@ -24,27 +25,22 @@ class SingleArgAsyncCache:
         """"""
 
         @wraps(func)
-        async def wrapper(key):
-            if not self.on:
-                return await func(key)
+        async def wrapper(moves, size):
+            if not self.on or len(moves) > self.maxlistlength:
+                return await func(moves, size)
 
-            if isinstance(key, list):
-                if len(key) > self.maxlistlength:
-                    return await func(key)
-
-                key = tuple(key)
+            key = (moves, size)
 
             if key in self.lru:
                 return self.lru[key]
             else:
-                self.lru[key] = await func(key)
+                self.lru[key] = await func(*key)
                 return self.lru[key]
 
         return wrapper
 
-    def invalidate(self, key) -> None:
-        if isinstance(key, list):
-            key = tuple(key)
+    def invalidate(self, moves: Tuple, size: int) -> None:
+        key = (moves, size)
 
         if key in self.lru:
             del self.lru[key]

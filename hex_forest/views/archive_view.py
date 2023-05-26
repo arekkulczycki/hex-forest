@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import asyncio
 from re import match
-from typing import List
+from typing import List, Tuple
 
 import requests
 from asyncpg import InterfaceError
@@ -172,7 +172,7 @@ class ArchiveView(BaseView):
         for i, move in enumerate(moves):
             x = ord(move[2]) - 97
             y = ord(move[3]) - 97
-            if has_swap:
+            if has_swap and i != 0:
                 x, y = Cell.swap(x, y)
 
             db_moves.append(Move(game=game, index=i, x=x, y=y))
@@ -180,7 +180,7 @@ class ArchiveView(BaseView):
 
     @staticmethod
     @ArchiveRecord.archive_record_cache
-    async def get_archive_games(moves: List[FakeMove]) -> List[ArchiveRecord]:
+    async def get_archive_games(moves: Tuple[FakeMove, ...], size: int) -> List[ArchiveRecord]:
         """"""
 
         # TODO: query that joins proper games
@@ -192,17 +192,30 @@ class ArchiveView(BaseView):
         )
         n_moves = len(moves)
 
-        records = await ArchiveRecord.raw(
-            f"""
-            select count(id) as number, sum(id) as black_wins, x, y from (
-                select CASE WHEN game.status = {Status.BLACK_WON} THEN 1 ELSE 0 END as id, move.x, move.y from (
-                    select count(game_id) c, game_id from (
-                        select game_id, concat(x,',', y, CASE WHEN mod(move.index, 2) = 0 THEN 'B' ELSE 'W' END) as crd from move where move.index < {n_moves}
-                    ) m where m.crd in ({moves_str})
-                    group by game_id
-                ) grouped join game on game.id = grouped.game_id join move on move.index = {n_moves} and move.game_id = grouped.game_id where c = {n_moves}
-            ) calculated group by x, y order by number desc limit 10
-        """
-        )
+        if n_moves:
+            records = await ArchiveRecord.raw(
+                f"""
+                select count(id) as number, sum(id) as black_wins, x, y from (
+                    select CASE WHEN game.status = {Status.BLACK_WON} THEN 1 ELSE 0 END as id, move.x, move.y from (
+                        select count(game_id) c, game_id from (
+                            select game_id, concat(x,',', y, CASE WHEN mod(move.index, 2) = 0 THEN 'B' ELSE 'W' END) as crd from move where move.index < {n_moves}
+                        ) m where m.crd in ({moves_str})
+                        group by game_id
+                    ) grouped join game on game.id = grouped.game_id join move on move.index = {n_moves} and move.game_id = grouped.game_id where c = {n_moves}
+                ) calculated group by x, y order by number desc limit 10
+                """
+            )
+        else:
+            records = await ArchiveRecord.raw(
+                f"""
+                select count(id) as number, sum(id) as black_wins, x, y from (
+                    select CASE WHEN game.status = {Status.BLACK_WON} THEN 1 ELSE 0 END as id, x, y from (
+                        select x, y, game_id from move where index = 0 and (x + y < {size - 1} or (x + y = {size - 1} and x <= {int(size/2)}))
+                        union all
+                        select ({size - 1} - x) as x, ({size - 1} - y) as y, game_id from move where index = 0 and (x + y > {size - 1} or (x + y = {size - 1} and x > {int(size/2)}))
+                    ) all_moves join game on all_moves.game_id = game.id where game.board_size = {size}
+                ) all_moves_in_game group by x, y order by number desc limit 15
+                """
+            )
 
         return records
