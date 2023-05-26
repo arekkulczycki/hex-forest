@@ -45,6 +45,8 @@ class ArchiveView(BaseView):
         )
         await ArchiveView._lg_import_from_text(response.text)
 
+        asyncio.create_task(ArchiveView._invalidate_for_game(game_id))
+
         return request.Response(
             code=301,
             mime_type="text/html",
@@ -53,6 +55,11 @@ class ArchiveView(BaseView):
                 "Location": f"/?warning=game imported",
             },
         )
+
+    @staticmethod
+    async def _invalidate_for_game(game_id: int) -> None:
+        game = await Game.get(id=game_id)
+        await game.invalidate_archive_record_cache()
 
     @staticmethod
     async def lg_bulk_import(request: Request) -> Response:
@@ -71,8 +78,9 @@ class ArchiveView(BaseView):
                 continue
             try:
                 await ArchiveView._lg_import_from_text(game_text)
-            except (IntegrityError, NotEnoughMoves):
+            except (IntegrityError, NotEnoughMoves) as e:
                 # maybe already imported
+                print(e)
                 continue
             except ValueError as e:
                 print(e)

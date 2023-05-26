@@ -52,9 +52,7 @@ class BoardCommunication:
         x: int = data["x"]
         y: int = data["y"]
 
-        await player.send(
-            BoardCommunication.get_move_message_dict(player, color, x, y)
-        )
+        await player.send(BoardCommunication.get_move_message_dict(player, color, x, y))
 
     async def _handle_game_put(self, player: Player, data: Dict) -> None:
         """"""
@@ -84,9 +82,7 @@ class BoardCommunication:
             pass
 
     @staticmethod
-    def get_move_message_dict(
-        player: Player, color: bool, x: int, y: int
-    ) -> Dict:
+    def get_move_message_dict(player: Player, color: bool, x: int, y: int) -> Dict:
         """"""
 
         return {
@@ -261,7 +257,11 @@ class BoardCommunication:
                 "color": True if result == Status.BLACK_WON else False,
             }
             await asyncio.wait(
-                [game.send(self.connected_clients_rev, message_dict), game.save()]
+                [
+                    game.send(self.connected_clients_rev, message_dict),
+                    game.save(),
+                    game.invalidate_archive_record_cache(),
+                ]
             )
 
     async def _handle_undo(self, player: Player, data: Dict) -> None:

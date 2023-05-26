@@ -115,12 +115,6 @@ class Game(Model):
 
         return await self.move_count % 2 == 1
 
-    async def save(self, *args, **kwargs) -> None:
-        await super().save(*args, **kwargs)
-
-        if ArchiveRecord.archive_record_cache.on and self.status in [Status.BLACK_WON, Status.WHITE_WON]:
-            asyncio.create_task(self.invalidate_archive_record_cache())
-
     async def invalidate_archive_record_cache(self) -> None:
         moves: List[FakeMove] = [move.fake() for move in await self.moves.filter(
             index__lt=ArchiveRecord.archive_record_cache.maxlistlength
