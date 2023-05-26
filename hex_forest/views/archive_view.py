@@ -180,13 +180,21 @@ class ArchiveView(BaseView):
 
     @staticmethod
     @ArchiveRecord.archive_record_cache
-    async def get_archive_games(moves: Tuple[FakeMove, ...], size: int) -> List[ArchiveRecord]:
+    async def get_archive_games(
+        moves: Tuple[FakeMove, ...], size: int
+    ) -> List[ArchiveRecord]:
         """"""
 
         # TODO: query that joins proper games
         moves_str = ",".join(
             [
                 f"'{move.x},{move.y}{'B' if move.index % 2 == 0 else 'W'}'"
+                for move in moves
+            ]
+        )
+        moves_str_rotated = ",".join(
+            [
+                f"'{size - move.x - 1},{size - move.y - 1}{'B' if move.index % 2 == 0 else 'W'}'"
                 for move in moves
             ]
         )
@@ -199,8 +207,11 @@ class ArchiveView(BaseView):
                     select CASE WHEN game.status = {Status.BLACK_WON} THEN 1 ELSE 0 END as id, move.x, move.y from (
                         select count(game_id) c, game_id from (
                             select game_id, concat(x,',', y, CASE WHEN mod(move.index, 2) = 0 THEN 'B' ELSE 'W' END) as crd from move where move.index < {n_moves}
-                        ) m where m.crd in ({moves_str})
-                        group by game_id
+                        ) m where m.crd in ({moves_str}) group by game_id
+                        union all
+                        select count(game_id) c, game_id from (
+                            select game_id, concat(x,',', y, CASE WHEN mod(move.index, 2) = 0 THEN 'B' ELSE 'W' END) as crd from move where move.index < {n_moves}
+                        ) m where m.crd in ({moves_str_rotated}) group by game_id
                     ) grouped join game on game.id = grouped.game_id join move on move.index = {n_moves} and move.game_id = grouped.game_id where c = {n_moves}
                 ) calculated group by x, y order by number desc limit 10
                 """
