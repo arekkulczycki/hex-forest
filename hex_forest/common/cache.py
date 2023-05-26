@@ -43,7 +43,6 @@ class SingleArgAsyncCache:
         return wrapper
 
     def invalidate(self, key) -> None:
-        print("invalidating:", key)
         if isinstance(key, list):
             key = tuple(key)
 

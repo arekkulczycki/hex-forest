@@ -119,12 +119,13 @@ class Game(Model):
         await super().save(*args, **kwargs)
 
         if ArchiveRecord.archive_record_cache.on and self.status in [Status.BLACK_WON, Status.WHITE_WON]:
-            await self.invalidate_archive_record_cache()
+            asyncio.create_task(self.invalidate_archive_record_cache())
 
     async def invalidate_archive_record_cache(self) -> None:
         moves: List[FakeMove] = [move.fake() for move in await self.moves.filter(
             index__lt=ArchiveRecord.archive_record_cache.maxlistlength
         )]
 
-        for i in range(ArchiveRecord.archive_record_cache.maxlistlength):
-            ArchiveRecord.archive_record_cache.invalidate(moves[:i+1])
+        if len(moves) > 20:
+            for i in range(ArchiveRecord.archive_record_cache.maxlistlength):
+                ArchiveRecord.archive_record_cache.invalidate(moves[:i+1])

@@ -77,6 +77,8 @@ class ArchiveView(BaseView):
             except ValueError as e:
                 print(e)
 
+        ArchiveRecord.archive_record_cache.clear()
+
         return request.Response(
             code=301,
             mime_type="text/html",
