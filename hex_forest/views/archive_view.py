@@ -212,7 +212,7 @@ class ArchiveView(BaseView):
                         select count(game_id) c, game_id from (
                             select game_id, concat(x,',', y, CASE WHEN mod(move.index, 2) = 0 THEN 'B' ELSE 'W' END) as crd from move where move.index < {n_moves}
                         ) m where m.crd in ({moves_str_rotated}) group by game_id
-                    ) grouped join game on game.id = grouped.game_id join move on move.index = {n_moves} and move.game_id = grouped.game_id where c = {n_moves}
+                    ) grouped join game on game.id = grouped.game_id and game.board_size = {size} join move on move.index = {n_moves} and move.game_id = grouped.game_id where c = {n_moves}
                 ) calculated group by x, y order by number desc limit 10
                 """
             )
