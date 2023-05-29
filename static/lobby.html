@@ -11,7 +11,7 @@
 
 <body class="body" {% if warning %}onload="showWarning();"{% endif %}>
 <div class="lobby-nav">
-    <div class="logo"><img src="/hex.png">livehex</div>
+    <div class="logo"><img src="/static/hex.png">livehex</div>
     <div class="logged-as"><div class="logged-as-text-rel"><div id="logged" class="logged-as-text player_name">{{ player_name }}</div></div></div>
 </div>
 <div class="lobby">
@@ -76,6 +76,6 @@
 <div id="warning" style="visibility: hidden">{{ warning }}</div>
 {% endif %}
 <script defer src="https://cdn.jsdelivr.net/gh/orestbida/cookieconsent@v2.9.1/dist/cookieconsent.js"></script>
-<script defer src="js/cookieconsent.js"></script>
+<script defer src="/static/js/cookieconsent.js"></script>
 </body>
 </html>
