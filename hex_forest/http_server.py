@@ -20,12 +20,12 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView):
 
     def __init__(self) -> None:
         self._routes = [
-            ("/favicon.ico", self.favicon),
-            ("/hex.png", self.favicon),
-            ("/style.css", self.styles),
-            ("/js/js.js", self.scripts),
-            ("/js/cookieconsent.js", self.cookieconsent),
-            ("/wood-grain.png", self.wood_pattern),
+            ("/static/favicon.ico", self.favicon),
+            ("/static/hex.png", self.favicon),
+            ("/static/style.css", self.styles),
+            ("/static/js/js.js", self.scripts),
+            ("/static/js/cookieconsent.js", self.cookieconsent),
+            ("/static/wood-grain.png", self.wood_pattern),
         ]
         super().__init__()
 
