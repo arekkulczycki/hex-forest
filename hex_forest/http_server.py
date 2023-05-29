@@ -18,6 +18,12 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView):
     _routes: List[Tuple[str, Callable]]
     """All handlers decorated with `@route`."""
 
+    _css: str
+    _js: str
+    _cookieconsent: str
+    _favicon: str
+    _wood_grain: str
+
     def __init__(self) -> None:
         self._routes = [
             ("/static/favicon.ico", self.favicon),
@@ -31,10 +37,28 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView):
 
         self.app = Application()
 
+        self.prepare_files()
         self.collect_routes()
 
     def run(self, host: str, port: int) -> None:
         self.app.run(host, port)
+
+    @staticmethod
+    def prepare_files() -> None:
+        with open("static/style.css") as html_file:
+            HttpServer._css = css_minify(html_file.read())
+
+        with open("static/js/js.js") as js_file:
+            HttpServer._js = js_minify(js_file.read())
+
+        with open("static/js/cookieconsent.js") as js_file:
+            HttpServer._cookieconsent = js_minify(js_file.read())
+
+        with open("static/hex.png", "rb") as image:
+            HttpServer._favicon = image.read()
+
+        with open("static/wood-grain.png", "rb") as image:
+            HttpServer._wood_grain = image.read()
 
     def collect_routes(self) -> None:
         for url, handler in self._routes:
@@ -43,34 +67,25 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView):
     # @route("/style.css")
     @staticmethod
     async def styles(request: Request) -> Response:
-        with open("static/style.css") as html_file:
-            return request.Response(
-                text=css_minify(html_file.read()), mime_type="text/css"
-            )
+        return request.Response(text=HttpServer._css, mime_type="text/css")
 
     # @route("/js.js")
     @staticmethod
     async def scripts(request: Request) -> Response:
-        with open("static/js/js.js") as js_file:
-            return request.Response(
-                text=js_minify(js_file.read()), mime_type="text/javascript"
-            )
+        return request.Response(text=HttpServer._js, mime_type="text/javascript")
 
     @staticmethod
     async def cookieconsent(request: Request) -> Response:
-        with open("static/js/cookieconsent.js") as js_file:
-            return request.Response(
-                text=js_minify(js_file.read()), mime_type="text/javascript"
-            )
+        return request.Response(
+            text=HttpServer._cookieconsent, mime_type="text/javascript"
+        )
 
     # @route("/favicon.ico")
     @staticmethod
     async def favicon(request: Request) -> Response:
-        with open("static/hex.png", "rb") as image:
-            return request.Response(body=image.read(), mime_type="image/png")
+        return request.Response(body=HttpServer._favicon, mime_type="image/png")
 
     # @route("/wood-pattern.png")
     @staticmethod
     async def wood_pattern(request: Request) -> Response:
-        with open("static/wood-grain.png", "rb") as image:
-            return request.Response(body=image.read(), mime_type="image/png")
+        return request.Response(body=HttpServer._favicon, mime_type="image/png")

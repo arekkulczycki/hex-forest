@@ -5,9 +5,10 @@ import asyncio
 import json
 from datetime import datetime
 from enum import IntEnum
-from typing import TYPE_CHECKING, Dict, Optional, List
+from typing import TYPE_CHECKING, Dict, Optional, List, Iterable
 
-from tortoise import Model, fields
+from cache import AsyncLRU
+from tortoise import Model, fields, BaseDBAsyncClient
 from websockets.legacy.server import WebSocketServerProtocol
 
 from hex_forest.models.archive_record import ArchiveRecord
@@ -57,6 +58,8 @@ class Game(Model):
     moves: fields.ReverseRelation["Move"]
 
     _move_count_cache: Optional[int] = None
+    open_cache = AsyncLRU(1)
+    finished_cache = AsyncLRU(1)
 
     async def send(
         self, clients: Dict[PlayerName, WebSocketServerProtocol], message: Dict
@@ -115,11 +118,59 @@ class Game(Model):
 
         return await self.move_count % 2 == 1
 
+    async def save(
+        self,
+        using_db: Optional[BaseDBAsyncClient] = None,
+        update_fields: Optional[Iterable[str]] = None,
+        force_create: bool = False,
+        force_update: bool = False,
+    ) -> None:
+        await super().save(using_db, update_fields, force_create, force_update)
+
+        if self.status in [Status.WHITE_WON, Status.BLACK_WON]:
+            asyncio.create_task(Game.invalidate_finished_cache())
+        else:
+            asyncio.create_task(Game.invalidate_open_cache())
+
     async def invalidate_archive_record_cache(self) -> None:
-        moves: List[FakeMove] = [move.fake() for move in await self.moves.filter(
-            index__lt=ArchiveRecord.archive_record_cache.maxlistlength
-        )]
+        moves: List[FakeMove] = [
+            move.fake()
+            for move in await self.moves.filter(
+                index__lt=ArchiveRecord.archive_record_cache.maxlistlength
+            )
+        ]
 
         if len(moves) > 20:
             for i in range(ArchiveRecord.archive_record_cache.maxlistlength):
-                ArchiveRecord.archive_record_cache.invalidate(tuple(moves[:i+1]), self.board_size)
+                ArchiveRecord.archive_record_cache.invalidate(
+                    tuple(moves[: i + 1]), self.board_size
+                )
+
+    @staticmethod
+    @open_cache
+    async def get_open() -> List[Game]:
+        return (
+            await Game.filter(status__in=[Status.PENDING, Status.IN_PROGRESS])
+            .order_by("status", "-started_at")
+            .prefetch_related("white", "black")
+        )
+
+    @staticmethod
+    async def invalidate_open_cache() -> None:
+        Game.open_cache.lru.clear()
+        await Game.get_finished()
+
+    @staticmethod
+    @finished_cache
+    async def get_finished() -> List[Game]:
+        return (
+            await Game.filter(status__in=[Status.BLACK_WON, Status.WHITE_WON])
+            .limit(10)
+            .order_by("-started_at")
+            .prefetch_related("white", "black")
+        )
+
+    @staticmethod
+    async def invalidate_finished_cache() -> None:
+        Game.finished_cache.lru.clear()
+        await Game.get_finished()

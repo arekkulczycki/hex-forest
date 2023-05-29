@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from random import randint
 from typing import List, Optional, Tuple
 
@@ -10,9 +10,8 @@ from tortoise.exceptions import IntegrityError
 from tortoise.timezone import now
 
 from hex_forest.config import config
-from hex_forest.constants import LG_IMPORT_OWNER_NAME
+from hex_forest.constants import LG_IMPORT_OWNER_NAME, ADMIN_NAME
 from hex_forest.models import Player, Game
-from hex_forest.models.game import Status
 from hex_forest.views.base_view import BaseView
 
 
@@ -31,24 +30,22 @@ class LobbyView(BaseView):
     async def lobby(request: Request) -> Response:
         websocket_address = f"ws://{config.ws_host}:{config.ws_port}/"
         cookie = request.cookies.get("livehex-pin")
+        now_ = now()
+
+        # datetime to get cached players list for that moment in time
+        tm = now_ - timedelta(seconds=now_.second, microseconds=now_.microsecond)
+
         players, active_games, finished_games = await asyncio.gather(
-            Player.exclude(name__startswith=LG_IMPORT_OWNER_NAME).all(),
-            Game.filter(status__in=[Status.PENDING, Status.IN_PROGRESS])
-            .order_by("status", "-started_at")
-            .prefetch_related("white", "black"),
-            Game.filter(status__in=[Status.BLACK_WON, Status.WHITE_WON]).limit(10)
-            .order_by("-started_at")
-            .prefetch_related("white", "black"),
+            Player.get_all(tm),
+            Game.get_open(),
+            Game.get_finished(),
         )
 
-        now_ = now()
         player, players_online, players_offline = LobbyView._collect_players(
             players, cookie, now_
         )
 
-        your_games, other_games = LobbyView._collect_games(
-            active_games, player
-        )
+        your_games, other_games = LobbyView._collect_games(active_games, player)
 
         template_context = {
             "websocket_address": websocket_address,
@@ -59,7 +56,7 @@ class LobbyView(BaseView):
             "your_games": your_games,
             "other_games": other_games,
             "finished_games": finished_games,
-            "is_admin": player and player.name == "Arek",
+            "is_admin": player and player.name == ADMIN_NAME,
         }
 
         if player:

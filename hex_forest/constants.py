@@ -4,3 +4,4 @@ WHITE_COLOR = True
 BLACK_COLOR = False
 
 LG_IMPORT_OWNER_NAME = "lg_"
+ADMIN_NAME = "Arek"
