@@ -84,4 +84,4 @@ class AnalysisView(BaseView):
             "archive_games": await ArchiveView.get_archive_games(tuple(moves), size),
             "stones": [Cell.render_stone(move.color, move.y, move.x) for move in moves],
         }  # TODO: hovering over archive suggestions highlight cells on board
-        return await BaseView._view_base(request, "game.html", template_context)
+        return await BaseView._view_base(request, BaseView._game_template, template_context)

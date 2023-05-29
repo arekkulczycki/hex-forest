@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 import json
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Iterable
@@ -66,3 +68,8 @@ class Player(Model, OnlinePlayer):
     async def invalidate_all_cache() -> None:
         Player.all_cache.lru.clear()
         await Player.get_all(now())
+
+    @staticmethod
+    @AsyncLRU(128)
+    async def get_by_cookie(cookie: str) -> Player:
+        return await Player.filter(cookie=cookie).first()

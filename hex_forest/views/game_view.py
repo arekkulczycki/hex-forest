@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import asyncio
 import traceback
 
 from japronto.request.crequest import Request
@@ -27,13 +28,14 @@ class GameView(BaseView):
     @staticmethod
     async def show_board(request: Request) -> Response:
         cookie = request.cookies.get("livehex-pin")
-        player = cookie and await Player.filter(cookie=cookie).first()
-
         game_id = request.match_dict["game_id"]
+
+        player = None
         try:
-            game = await Game.get(id=game_id).prefetch_related(
-                "owner", "white", "black", "moves"
-            )
+            if cookie:
+                player, game = await asyncio.gather(Player.get_by_cookie(cookie), Game.get_by_id(game_id))
+            else:
+                game = Game.get_by_id(game_id)
         except DoesNotExist:
             return request.Response(
                 code=301,
@@ -64,7 +66,7 @@ class GameView(BaseView):
             if last_move
             else None,
         }
-        return await BaseView._view_base(request, "game.html", template_context)
+        return await BaseView._view_base(request, BaseView._game_template, template_context)
 
     @staticmethod
     async def new_game(request: Request) -> Response:

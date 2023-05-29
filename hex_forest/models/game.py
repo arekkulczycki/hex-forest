@@ -147,6 +147,13 @@ class Game(Model):
                 )
 
     @staticmethod
+    @AsyncLRU(128)
+    async def get_by_id(game_id: int) -> Game:
+        return await Game.get(id=game_id).prefetch_related(
+            "owner", "white", "black", "moves"
+        )
+
+    @staticmethod
     @open_cache
     async def get_open() -> List[Game]:
         return (

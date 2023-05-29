@@ -62,7 +62,7 @@ class LobbyView(BaseView):
         if player:
             asyncio.create_task(LobbyView._update_player_heartbeat(player, now_))
 
-        return await BaseView._view_base(request, "lobby.html", template_context)
+        return await BaseView._view_base(request, BaseView._lobby_template, template_context)
 
     @staticmethod
     def _collect_players(
@@ -137,6 +137,7 @@ class LobbyView(BaseView):
             "Set-Cookie": f"livehex-pin={cookie}; max-age=2592000; path=/; samesite=strict",
             "Cache-Control": "no-store",
             "Location": "/",
+            "SameSite": "Strict",
         }
 
         return request.Response(
