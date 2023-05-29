@@ -53,7 +53,7 @@
         <h1 class="heading">finished games</h1>
         <ul role="list" class="lobby-list">
             {% for game in finished_games %}
-            <li class="lobby-item">black: <b>{{ game.black.name or "---" }}</b>,&nbsp; white: <b>{{ game.white.name or "---" }}</b> <a class="game_join" href="/analysis/game/{{ game.id }}">view</a></li>
+            <li class="lobby-item">black: {% if game.status == 3 %}<b>{% endif %}{{ game.black.name or "---" }}{% if game.status == 3 %}</b>{% endif %},&nbsp; white: {% if game.status == 2 %}<b>{% endif %}{{ game.white.name or "---" }}{% if game.status == 2 %}</b>{% endif %} <a class="game_join" href="/analysis/game/{{ game.id }}">view</a></li>
             {% endfor %}
         </ul>
     </div>

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-from pydantic import BaseSettings, Field
+from pydantic import BaseSettings
 
 VERSION_MAJOR: int = 0
 VERSION_MINOR: int = 3
-VERSION_PATCH: int = 1
+VERSION_PATCH: int = 2
 
 
 class Config(BaseSettings):

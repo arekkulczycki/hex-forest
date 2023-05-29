@@ -165,7 +165,6 @@ class Game(Model):
     @staticmethod
     async def invalidate_open_cache() -> None:
         Game.open_cache.lru.clear()
-        await Game.get_finished()
 
     @staticmethod
     @finished_cache
