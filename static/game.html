@@ -130,13 +130,13 @@
 {#            </div>#}
             <div class="menu-paragraph">
                 <div id="player_1_box" class="player_box message_black">
-                    <img id="player_1_active" src="/favicon.ico" alt="" style="width: 1vw; float: left; padding-right: 0.5vw;" {% if mode == 'p' %} onclick="kickPlayer(1)" {% endif %}>
+                    <img id="player_1_active" src="/static/hex.png" alt="" style="width: 1vw; float: left; padding-right: 0.5vw;" {% if mode == 'p' %} onclick="kickPlayer(1)" {% endif %}>
                     <div id="player_1_box_text" class="player_text" onclick="joinBoard(false)">
                         {{ black_player }}
                     </div>
                 </div>
                 <div id="player_2_box" class="player_box message_white">
-                    <img id="player_2_active" src="/favicon.ico" alt="" style="width: 1vw; float: left; padding-right: 0.5vw;" {% if mode == 'p' %} onclick="kickPlayer(2)" {% endif %}>
+                    <img id="player_2_active" src="/static/hex.png" alt="" style="width: 1vw; float: left; padding-right: 0.5vw;" {% if mode == 'p' %} onclick="kickPlayer(2)" {% endif %}>
                     <div id="player_2_box_text" class="player_text" onclick="joinBoard(true)">
                         {{ white_player }}
                     </div>
