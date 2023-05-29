@@ -4,18 +4,19 @@ from typing import Tuple
 
 from cache.lru import LRU
 
+from hex_forest.constants import MAX_ARCHIVE_RECORD_LENGTH
+
 
 class ArchiveRecordCache:
     """
     Cache async function results that take exactly one argument.
     """
 
-    def __init__(self, maxsize=128, maxlistlength=12):
+    def __init__(self, maxsize=128):
         """
         :param maxsize: Use maxsize as None for unlimited size cache
         """
 
-        self.maxlistlength = maxlistlength
         self.maxsize = maxsize
         self.lru = LRU(maxsize=maxsize)
 
@@ -26,7 +27,7 @@ class ArchiveRecordCache:
 
         @wraps(func)
         async def wrapper(moves, size):
-            if not self.on or len(moves) > self.maxlistlength:
+            if not self.on or len(moves) > MAX_ARCHIVE_RECORD_LENGTH:
                 return await func(moves, size)
 
             key = (moves, size)

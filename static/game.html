@@ -3,9 +3,9 @@
     <title>Hex Forest</title>
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/style.css?v={{ version }}">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js"></script>
-    <script src="/static/js/js.js?v={{ version }}" ws-address="{{ websocket_address }}" mode="{{ mode }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" async></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js" async></script>
+    <script src="/static/js/js.js?v={{ version }}" ws-address="{{ websocket_address }}" mode="{{ mode }}" async></script>
 </head>
 <body>
     <div class="lobby-nav">
@@ -88,7 +88,7 @@
             {% if mode == "analysis" %}
             <div class="menu-paragraph">
                 <input type="button" class="button tight" value="clear board" onclick="sendClearBoard()">
-                <a href="javascript:window.location=getRotateUrl();"><input type="button" class="button tight" value="rotate 180" onclick="rotate()"></a>
+                <a href="javascript:goToRotatedBoard();"><input type="button" class="button tight" value="rotate 180"></a>
                 <input type="button" class="button tight" value="copy link" onclick="copyLink()">
             </div>
 {#            <div class="menu-paragraph">#}
@@ -110,7 +110,7 @@
             </div>
             <div class="menu-paragraph">
                 <div></div>
-                <a href="javascript:window.location=getArchiveUrl();" style="color: black; text-decoration: none;"><input type="button" class="button tight" value="reload archive"></a>
+                <a href="javascript:goToArchive({{ archive_move_limit or 1000 }});" style="color: black; text-decoration: none;"><input type="button" class="button tight" value="reload archive"></a>
                 <ul role="list" class="lobby-list">
                     {% for game in archive_games %}
                         <li class="lobby-item archive-item" onmouseout="boardUnhover('{{ game.next_move }}')" onmouseover="boardHover('{{ game.next_move }}')"><div style="font-weight: bolder;">{{ game.next_move }}</div><div>{{ game.number }} games</div><div style="background: linear-gradient(to right, black {{ game.black_prc }}%, white {{ game.black_prc }}%);">{{ game.black_prc }}%</div></li>

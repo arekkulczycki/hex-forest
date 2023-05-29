@@ -597,8 +597,13 @@ function getImportUrl() {
     return `/archive/lg_import/${input}`
 }
 
-function getArchiveUrl() {
-    return `/analysis?moves=${getAllMovesUrl()}`
+function goToArchive(limit) {
+    let moves = getAllMovesUrl();
+    if (moves.split(',').length > limit) {
+        alert(`At the moment archive permitted for up to ${limit}` + ' moves');
+    } else {
+        window.location = `/analysis?moves=${getAllMovesUrl()}`;
+    }
 }
 
 function showWarning() {
@@ -719,8 +724,8 @@ function getAllMovesUrl() {
     return moves.join(',');
 }
 
-function getRotateUrl() {
-    return `/analysis?moves=${getAllMovesUrl()}&action=rotate`
+function goToRotatedBoard() {
+    window.location = `/analysis?moves=${getAllMovesUrl()}&action=rotate`;
 }
 
 function copyLink() {
