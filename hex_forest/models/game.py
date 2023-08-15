@@ -27,6 +27,11 @@ class Status(IntEnum):
     BLACK_WON = 3
 
 
+class Variant(IntEnum):
+    NORMAL = 0
+    BLIND = 1
+
+
 class Game(Model):
     """
     A game created by one of the players.
@@ -45,6 +50,7 @@ class Game(Model):
     status: Status = fields.IntEnumField(Status, default=Status.PENDING)
     board_size: int = fields.IntField(default=13)
     swapped: bool = fields.BooleanField(default=False)
+    variant: Variant = fields.IntEnumField(Variant, default=Variant.NORMAL)
 
     started_at: Optional[datetime] = fields.DatetimeField(null=True)
     finished_at: Optional[datetime] = fields.DatetimeField(null=True)
@@ -149,9 +155,10 @@ class Game(Model):
     @staticmethod
     @AsyncLRU(128)
     async def get_by_id(game_id: int) -> Game:
-        return await Game.get(id=game_id).prefetch_related(
+        game = await Game.get(id=game_id).prefetch_related(
             "owner", "white", "black", "moves"
         )
+        return game
 
     @staticmethod
     @open_cache
@@ -170,7 +177,7 @@ class Game(Model):
     @finished_cache
     async def get_finished() -> List[Game]:
         return (
-            await Game.filter(status__in=[Status.BLACK_WON, Status.WHITE_WON])
+            await Game.filter(board_size=13, status__in=[Status.BLACK_WON, Status.WHITE_WON])  # TODO: board size
             .limit(10)
             .order_by("-started_at")
             .prefetch_related("white", "black")

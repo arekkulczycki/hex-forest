@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from random import randint
 from typing import List, Optional, Tuple
 
+from asyncpg import TooManyConnectionsError
 from japronto.request.crequest import Request
 from japronto.response.py import Response
 from tortoise.exceptions import IntegrityError
@@ -35,11 +36,18 @@ class LobbyView(BaseView):
         # datetime to get cached players list for that moment in time
         tm = now_ - timedelta(seconds=now_.second, microseconds=now_.microsecond)
 
-        players, active_games, finished_games = await asyncio.gather(
-            Player.get_all(tm),
-            Game.get_open(),
-            Game.get_finished(),
-        )
+        while True:
+            try:
+                players, active_games, finished_games = await asyncio.gather(
+                    Player.get_all(tm),
+                    Game.get_open(),
+                    Game.get_finished(),
+                )
+                break
+            except TooManyConnectionsError:
+                await asyncio.sleep(1)
+                tm = now_ - timedelta(seconds=now_.second, microseconds=now_.microsecond)
+                continue
 
         player, players_online, players_offline = LobbyView._collect_players(
             players, cookie, now_

@@ -38,6 +38,11 @@
                     <div id="swap" style="visibility: {% if show_swap %}visible{% else %}hidden{% endif %}">
                         <input type="button" class="button" value="swap" onclick="sendSwap()">
                     </div>
+                    {% if allow_pass %}
+                    <div id="pass">
+                        <input type="button" class="button" value="pass" onclick="sendPass()">
+                    </div>
+                    {% endif %}
                 </div>
                 {% endif %}
                 {% endif %}

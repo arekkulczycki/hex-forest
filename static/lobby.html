@@ -17,7 +17,12 @@
 </div>
 <div class="lobby">
     <div class="lobby-column lobby-actions">
-        <a href="/new-game"><button class="button">new game</button></a>
+        <form action="/new-game?" method="get" name="new-game">
+{#        <a href="/new-game"><button class="button">new game</button></a>#}
+        <input type="submit" class="button" value="new game">
+        <input type="radio" id="variant-normal" name="variant" value="normal" checked><label for="variant-normal">classic</label>
+        <input type="radio" id="variant-blind" name="variant" value="blind"><label for="variant-blind">blind</label>
+        </form>
         <div class="new-game-settings"></div>
         <a href="" onclick="alert('sorry, not implemented yet :(')"><button class="button" onclick="alert('sorry, not implemented yet :(')">new game vs AI</button></a>
         <a href="/analysis"><button class="button">analysis board</button></a>

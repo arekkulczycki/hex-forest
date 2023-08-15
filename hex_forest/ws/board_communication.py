@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import traceback
-from typing import Awaitable, Callable, Dict
+from typing import Awaitable, Callable, Dict, List
 
 from tortoise.exceptions import IntegrityError
 from tortoise.timezone import now
 from websockets.legacy.server import WebSocketServerProtocol
 
 from hex_forest.common.board import Cell
-from hex_forest.models import Player, Game, Move
-from hex_forest.models.game import Status
+from hex_forest.models import Game, Move, Player
+from hex_forest.models.game import Status, Variant
 
 
 class BoardCommunication:
@@ -30,6 +30,7 @@ class BoardCommunication:
                 "board_clear": self._handle_clear,
                 "board_join": self._handle_join,
                 "board_swap": self._handle_swap,
+                "board_pass": self._handle_pass,
                 "board_start": self._handle_start,
                 "board_resign": self._handle_resign,
                 "board_undo": self._handle_undo,
@@ -66,20 +67,26 @@ class BoardCommunication:
             x: int = data["x"]
             y: int = data["y"]
 
-            send_to_game = game.send(
-                self.connected_clients_rev,
-                BoardCommunication.get_move_message_dict(player, color, x, y),
+            message_dict = BoardCommunication.get_move_message_dict(player, color, x, y)
+            send_to_game = (
+                game.send(
+                    self.connected_clients_rev,
+                    message_dict,
+                )
+                if game.variant is not Variant.BLIND
+                else player.send(message_dict)
             )
-            move_count = await game.move_count
-            await asyncio.wait(
-                [
-                    send_to_game,
-                    Move.create(game=game, x=x, y=y, index=move_count),
-                ]
-            )
+
+            await asyncio.wait([send_to_game, self.create_move(game, x, y)])
         else:
             # not your turn
             pass
+
+    @staticmethod
+    async def create_move(game: Game, x: int, y: int) -> None:
+        """"""
+
+        await Move.create(game=game, x=x, y=y, index=await game.move_count)
 
     @staticmethod
     def get_move_message_dict(player: Player, color: bool, x: int, y: int) -> Dict:
@@ -94,6 +101,23 @@ class BoardCommunication:
                 "cy": Cell.stone_y(y),
             },
             "message": f"Player {player.name} has clicked cell {chr(x + 97)}{y + 1}",
+        }
+
+    @staticmethod
+    def get_pass_message_dict(player: Player, color: bool, moves: List[Move]) -> Dict:
+        """"""
+
+        return {
+            "action": "passed",
+            "moves": [
+                {
+                    "color": not color,
+                    "id": Cell.stone_id(move.x, move.y, color),
+                    "cx": Cell.stone_x(move.y, move.x),
+                    "cy": Cell.stone_y(move.y),
+                } for move in moves if move.color is not color and move.x != -1 and move.y != -1
+            ],
+            "message": f"Player {player.name} has passed turn",
         }
 
     async def _handle_remove(self, player: Player, data: Dict) -> None:
@@ -209,6 +233,33 @@ class BoardCommunication:
             )
         else:
             # cannot swap as black
+            pass
+
+    async def _handle_pass(self, player: Player, data: Dict) -> None:
+        """"""
+
+        game = await Game.get(id=data["game_id"]).prefetch_related(
+            "owner", "white", "black", "moves"
+        )
+        color = await game.turn
+
+        if (color and player == game.white) or (not color and player == game.black):
+            x: int = -1
+            y: int = -1
+
+            message_dict = BoardCommunication.get_pass_message_dict(player, color, game.moves)
+            send_to_game = (
+                game.send(
+                    self.connected_clients_rev,
+                    message_dict,
+                )
+                if game.variant is not Variant.BLIND
+                else player.send(message_dict)
+            )
+
+            await asyncio.wait([send_to_game, self.create_move(game, x, y)])
+        else:
+            # not your turn
             pass
 
     async def _handle_start(self, player: Player, data: Dict) -> None:

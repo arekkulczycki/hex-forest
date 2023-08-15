@@ -1,15 +1,16 @@
 websockets==11.*
 Jinja2==3.*
-uvloop==0.15.3
-japronto==0.1.2
+uvloop==0.17.*
+git+https://github.com/arekkulczycki/japronto-py39.git  # my fork of japronto project to work with python3.9
 # psycopg2-binary==2.9.*
 requests==2.*
 css-html-js-minify==2.5.5
-uvicorn==0.21.*
-gunicorn==20.*
-pydantic==1.*
+uvicorn==0.23.*
+gunicorn==21.*
+pydantic==2.*
+pydantic-settings==2.*
 python-dotenv==0.*
-tortoise-orm==0.19.*
+tortoise-orm==0.20.*  # versions after 0.19.3 drop python3.7 support
 asyncpg==0.27.*
 async-cache==1.*
 aerich==0.7.*

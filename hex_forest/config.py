@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 VERSION_MAJOR: int = 0
 VERSION_MINOR: int = 3
@@ -21,12 +21,7 @@ class Config(BaseSettings):
     def version(self) -> str:
         return f"{VERSION_MAJOR}.{VERSION_MINOR}.{VERSION_PATCH}"
 
-    class Config:
-        """
-        Settings config.
-        """
-
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
 config = Config()

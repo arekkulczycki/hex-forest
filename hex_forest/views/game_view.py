@@ -1,15 +1,18 @@
 # -*- coding: utf-8 -*-
 import asyncio
 import traceback
+from typing import Tuple
 
+from asyncpg import TooManyConnectionsError
 from japronto.request.crequest import Request
 from japronto.response.py import Response
 from tortoise.exceptions import IntegrityError, DoesNotExist
 
 from hex_forest.common.board import Board, Cell
 from hex_forest.models import Player
-from hex_forest.models.game import Game, Status
+from hex_forest.models.game import Game, Status, Variant
 from hex_forest.views.base_view import BaseView
+from hex_forest.views.variants.blind_hex_view import BlindHexView
 
 
 class GameView(BaseView):
@@ -24,9 +27,8 @@ class GameView(BaseView):
             ("/new-game", self.new_game),
         ]
 
-    # @route("/game")
     @staticmethod
-    async def show_board(request: Request) -> Response:
+    async def get_game_data(request: Request) -> Tuple[Player, Game]:
         cookie = request.cookies.get("livehex-pin")
         game_id = request.match_dict["game_id"]
 
@@ -35,7 +37,16 @@ class GameView(BaseView):
             if cookie:
                 player, game = await asyncio.gather(Player.get_by_cookie(cookie), Game.get_by_id(game_id))
             else:
-                game = Game.get_by_id(game_id)
+                game = await Game.get_by_id(game_id)
+        except TooManyConnectionsError:
+            await asyncio.sleep(1)
+            return request.Response(
+                code=301,
+                mime_type="text/html",
+                headers={
+                    "Location": f"/?warning=Sorry, we couldn't handle your request due to high traffic on the site.",
+                },
+            )
         except DoesNotExist:
             return request.Response(
                 code=301,
@@ -45,6 +56,16 @@ class GameView(BaseView):
                 },
             )
 
+        return player, game
+
+    # @route("/game")
+    @staticmethod
+    async def show_board(request: Request) -> Response:
+        player, game = await GameView.get_game_data(request)
+        if game.variant is Variant.BLIND:
+            return await BlindHexView.show_board(request, player, game)
+
+        # the NORMAL variant
         size = 13
         board = Board(size)
 
@@ -93,8 +114,10 @@ class GameView(BaseView):
                 },
             )
 
+        variant_str: str = request.query["variant"]
+        variant = Variant[variant_str.upper()]
         try:
-            game = await Game.create(owner=player)
+            game = await Game.create(owner=player, variant=variant)
         except IntegrityError:
             traceback.print_exc()
             return request.Response(

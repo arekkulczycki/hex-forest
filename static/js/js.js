@@ -4,7 +4,6 @@ const mode = script.getAttribute('mode');
 const blackColor = false;
 const whiteColor = true;
 const storeMinimum = 10;
-var active = false;
 var timeout = null;
 var lastMoveColor = true;
 
@@ -66,6 +65,9 @@ function connect() {
                 break;
             case 'swapped':
                 swapped(data);
+                break;
+            case 'passed':
+                passed(data);
                 break;
             case 'chat_message':
                 chatMessage(data);
@@ -362,6 +364,14 @@ function sendResign() {
 function sendSwap() {
     let message = {
         'action': 'board_swap',
+        'game_id': window.location.href.split('/').at(-1)
+    };
+    socket.send(JSON.stringify(message))
+}
+
+function sendPass() {
+    let message = {
+        'action': 'board_pass',
         'game_id': window.location.href.split('/').at(-1)
     };
     socket.send(JSON.stringify(message))
@@ -700,6 +710,16 @@ function swapped() {
     let blackText = black.html();
     black.html(white.html());
     white.html(blackText);
+}
+
+function passed(data) {
+    data.moves.forEach((move, i) => {
+        let color = move.color;
+        let id = move.id;
+        let cx = move.cx;
+        let cy = move.cy;
+        putStone(id, cx, cy, color);
+    });
 }
 
 function getAllMoves() {
