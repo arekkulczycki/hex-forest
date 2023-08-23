@@ -1,3 +1,4 @@
 mypy==1.*
 locust==2.*
 locust-plugins==3.*
+memray

@@ -69,15 +69,18 @@ class BoardCommunication:
 
             message_dict = BoardCommunication.get_move_message_dict(player, color, x, y)
             send_to_game = (
-                game.send(
+                (game.send(
                     self.connected_clients_rev,
                     message_dict,
-                )
+                ),)
                 if game.variant is not Variant.BLIND
-                else player.send(message_dict)
+                else (player.send(message_dict), game.send(
+                    self.connected_clients_rev,
+                    BoardCommunication.get_pass_message_dict(player, color, []),
+                ))
             )
 
-            await asyncio.wait([send_to_game, self.create_move(game, x, y)])
+            await asyncio.wait([*send_to_game, self.create_move(game, x, y)])
         else:
             # not your turn
             pass
@@ -109,6 +112,7 @@ class BoardCommunication:
 
         return {
             "action": "passed",
+            "color": color,
             "moves": [
                 {
                     "color": not color,
@@ -249,15 +253,18 @@ class BoardCommunication:
 
             message_dict = BoardCommunication.get_pass_message_dict(player, color, game.moves)
             send_to_game = (
-                game.send(
+                (game.send(
                     self.connected_clients_rev,
-                    message_dict,
-                )
+                    BoardCommunication.get_pass_message_dict(player, color, game.moves),
+                ),)
                 if game.variant is not Variant.BLIND
-                else player.send(message_dict)
+                else (player.send(message_dict), game.send(
+                    self.connected_clients_rev,
+                    BoardCommunication.get_pass_message_dict(player, color, []),
+                ))
             )
 
-            await asyncio.wait([send_to_game, self.create_move(game, x, y)])
+            await asyncio.wait([*send_to_game, self.create_move(game, x, y)])
         else:
             # not your turn
             pass

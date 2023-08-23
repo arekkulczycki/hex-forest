@@ -423,15 +423,15 @@ class WebsocketCommunicator:
             return
         elif len(position) != 1:
             return
-        player_1 = players.get(1)
-        player_2 = players.get(2)
-        if not player_1 or not player_2:
+        black = players.get(1)
+        white = players.get(2)
+        if not black or not white:
             return
 
-        player_1.id = 2
-        player_2.id = 1
-        players[1] = player_2
-        players[2] = player_1
+        black.id = 2
+        white.id = 1
+        players[1] = white
+        players[2] = black
 
         message_dict = {
             "type": "players",

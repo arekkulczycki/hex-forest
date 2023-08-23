@@ -7,6 +7,28 @@ const storeMinimum = 10;
 var timeout = null;
 var lastMoveColor = true;
 
+function whenAvailable(name, callback) {
+    var interval = 10; // ms
+    window.setTimeout(function() {
+        if (window[name]) {
+            callback(window[name]);
+        } else {
+            whenAvailable(name, callback);
+        }
+    }, interval);
+}
+
+function identifyPlayer() {
+    let pin = Cookies.get('livehex-pin');
+    let message = {
+        'action': 'assign_player',
+        'pin': pin ?? null
+    };
+    socket.send(JSON.stringify(message))
+
+    console.log('Player identified');
+}
+
 function connect() {
     window.history.pushState({}, document.title, window.location.pathname);
 
@@ -16,12 +38,7 @@ function connect() {
     socket.onopen = function (e) {
         console.log('Connection established');
 
-        let pin = Cookies.get('livehex-pin');
-        let message = {
-            'action': 'assign_player',
-            'pin': pin ?? null
-        };
-        socket.send(JSON.stringify(message))
+        whenAvailable("Cookies", identifyPlayer)
     };
 
     socket.onmessage = function (event) {
@@ -118,9 +135,9 @@ function connect() {
                 playerName = data.player_name;
                 console.log(playerId, playerName);
                 if (data.player_id === 1) {
-                    $('#player_1_box_text').html(playerName);
+                    $('#black_box_text').html(playerName);
                 } else if (data.player_id === 2) {
-                    $('#player_2_box_text').html(playerName);
+                    $('#white_box_text').html(playerName);
                 } else {
                     $(`#${playerId}`).html(playerName);
                 }
@@ -169,8 +186,8 @@ connect();
 
 function chatMessage(data) {
     let playerName = data.player_name;
-    let white = $('#player_2_box_text');
-    let black = $('#player_1_box_text');
+    let white = $('#white_box_text');
+    let black = $('#black_box_text');
 
     let color = white.html().trim() === playerName ? 'white' : (black.html().trim() === playerName ? 'black' : 'blue');
 
@@ -659,14 +676,16 @@ function handleMove(data) {
     let cx = data.move.cx;
     let cy = data.move.cy;
     putStone(id, cx, cy, color);
+
+    setTurnMarker(!data.move.color);
 }
 
 function takeSpot(data) {
     let playerName = data.player_name;
     let color = data.color;
 
-    let white = $('#player_2_box_text');
-    let black = $('#player_1_box_text');
+    let white = $('#white_box_text');
+    let black = $('#black_box_text');
 
     if (color) {
         if (black.html().trim() === playerName) {
@@ -683,18 +702,21 @@ function takeSpot(data) {
 
 function leaveSpot(data) {
     if (data.color) {
-        $('#player_2_box_text').html('join');
+        $('#white_box_text').html('join');
     } else {
-        $('#player_1_box_text').html('join');
+        $('#black_box_text').html('join');
     }
 }
 
 function gameStarted(data) {
     $('#status').html("status: in progress");
+    // TODO: dim the background for the nice feel of board focus
     let start = $('#start');
     if (start) {
         start.remove();
     }
+
+    setTurnMarker(false);
 }
 
 function showSwap(data) {
@@ -704,8 +726,8 @@ function showSwap(data) {
 function swapped() {
     $('#swap').css('visibility', 'hidden');
 
-    let white = $('#player_2_box_text');
-    let black = $('#player_1_box_text');
+    let white = $('#white_box_text');
+    let black = $('#black_box_text');
 
     let blackText = black.html();
     black.html(white.html());
@@ -720,6 +742,18 @@ function passed(data) {
         let cy = move.cy;
         putStone(id, cx, cy, color);
     });
+
+    setTurnMarker(!data.color);
+}
+
+function setTurnMarker(turn) {
+    if (turn) {
+        $('#white_turn').show();
+        $('#black_turn').hide();
+    } else {
+        $('#black_turn').show();
+        $('#white_turn').hide();
+    }
 }
 
 function getAllMoves() {

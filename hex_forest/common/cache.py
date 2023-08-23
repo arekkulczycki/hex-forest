@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
+from __future__ import annotations
+
 from functools import wraps
-from typing import Tuple
+from typing import Awaitable, Callable, List, TYPE_CHECKING, Tuple
 
 from cache.lru import LRU
 
 from hex_forest.constants import MAX_ARCHIVE_RECORD_LENGTH
+
+if TYPE_CHECKING:
+    from hex_forest.models import ArchiveRecord
+    from hex_forest.models.move import FakeMove
 
 
 class ArchiveRecordCache:
@@ -12,21 +18,26 @@ class ArchiveRecordCache:
     Cache async function results that take exactly one argument.
     """
 
-    def __init__(self, maxsize=128):
+    def __init__(self, maxsize: int = 128):
         """
         :param maxsize: Use maxsize as None for unlimited size cache
         """
 
-        self.maxsize = maxsize
-        self.lru = LRU(maxsize=maxsize)
+        self.maxsize: int = maxsize
+        self.lru: LRU = LRU(maxsize=maxsize)
 
-        self.on = True
+        self.on: bool = True
 
-    def __call__(self, func):
+    def __call__(
+        self,
+        func: Callable[[Tuple[FakeMove, ...], int], Awaitable[List[ArchiveRecord]]],
+    ):
         """"""
 
         @wraps(func)
-        async def wrapper(moves, size):
+        async def wrapper(
+            moves: Tuple[FakeMove, ...], size: int
+        ) -> List[ArchiveRecord]:
             if not self.on or len(moves) > MAX_ARCHIVE_RECORD_LENGTH:
                 return await func(moves, size)
 
@@ -40,7 +51,7 @@ class ArchiveRecordCache:
 
         return wrapper
 
-    def invalidate(self, moves: Tuple, size: int) -> None:
+    def invalidate(self, moves: Tuple[FakeMove, ...], size: int) -> None:
         key = (moves, size)
 
         if key in self.lru:

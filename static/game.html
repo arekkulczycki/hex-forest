@@ -4,7 +4,7 @@
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
     <link rel="stylesheet" href="/static/style.css?v={{ version }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" async></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js" async></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.5/js.cookie.min.js" async></script>
     <script src="/static/js/js.js?v={{ version }}" ws-address="{{ websocket_address }}" mode="{{ mode }}" async></script>
 </head>
 <body>
@@ -67,13 +67,13 @@
                 </defs>
                 {% if size == 13 %}
                     <polygon points="15.00,4.02 225.00,367.75 435.00,4.02 645.00,367.75" style="fill:#FFFFFF;stroke:black;stroke-width:1"></polygon>
-                    <polygon points="15.00,4.02 435.00,4.02 225.00,367.75 645.00,367.75" style="fill:#303030;stroke:black;stroke-width:1"></polygon>
+                    <polygon points="15.00,4.02 435.00,4.02 225.00,367.75 645.00,367.75" style="fill:#000000;stroke:black;stroke-width:1"></polygon>
                 {% elif size == 11 %}
                     <polygon points="15.00,4.02 194,316 375.00,4.02 556.00,316" style="fill:#FFFFFF;stroke:black;stroke-width:1"></polygon>
-                    <polygon points="15.00,4.02 375.00,4.02 194,316 556.00,316" style="fill:#303030;stroke:black;stroke-width:1"></polygon>
+                    <polygon points="15.00,4.02 375.00,4.02 194,316 556.00,316" style="fill:#000000;stroke:black;stroke-width:1"></polygon>
                 {% else %}
                     <polygon points="15.00,4.02 315,524 615,4.02 915,524" style="fill:#FFFFFF;stroke:black;stroke-width:1"></polygon>
-                    <polygon points="15.00,4.02 615,4.02 315,524 915,524" style="fill:#303030;stroke:black;stroke-width:1"></polygon>
+                    <polygon points="15.00,4.02 615,4.02 315,524 915,524" style="fill:#000000;stroke:black;stroke-width:1"></polygon>
                 {% endif %}
                 {% for row in rows %}
                     {% set outer_loop = loop %}
@@ -135,17 +135,19 @@
 {#                </div>#}
 {#            </div>#}
             <div class="menu-paragraph">
-                <div id="player_1_box" class="player_box message_black">
-                    <img id="player_1_active" src="/static/hex.png" alt="" style="width: 1vw; float: left; padding-right: 0.5vw;" {% if mode == 'p' %} onclick="kickPlayer(1)" {% endif %}>
-                    <div id="player_1_box_text" class="player_text" onclick="joinBoard(false)">
+                <div id="black_box" class="player_box message_black">
+                    <img id="black_active" src="/static/hex.png" alt="" style="width: 1vw; float: left; padding-right: 0.5vw;" {% if mode == 'p' %} onclick="kickPlayer(1)" {% endif %}>
+                    <div id="black_box_text" class="player_text" onclick="joinBoard(false)">
                         {{ black_player }}
                     </div>
+                    <img id="black_turn" src="/static/hex.png" alt="" class="player_turn" {% if turn != 2 %}style="display: none;"{% endif %}/>
                 </div>
-                <div id="player_2_box" class="player_box message_white">
-                    <img id="player_2_active" src="/static/hex.png" alt="" style="width: 1vw; float: left; padding-right: 0.5vw;" {% if mode == 'p' %} onclick="kickPlayer(2)" {% endif %}>
-                    <div id="player_2_box_text" class="player_text" onclick="joinBoard(true)">
+                <div id="white_box" class="player_box message_white">
+                    <img id="white_active" src="/static/hex.png" alt="" style="width: 1vw; float: left; padding-right: 0.5vw;" {% if mode == 'p' %} onclick="kickPlayer(2)" {% endif %}>
+                    <div id="white_box_text" class="player_text" onclick="joinBoard(true)">
                         {{ white_player }}
                     </div>
+                    <img id="white_turn" src="/static/hex.png" alt="" class="player_turn" {% if turn != 1 %}style="display: none;"{% endif %}/>
                 </div>
             </div>
             <div id="chat" class="chat">
@@ -167,7 +169,7 @@
 {#                recently saved games:#}
 {#                <div class="games">#}
 {#                    {% for game in games %}#}
-{#                        <div id="game-{{ game.game_id }}" class="saved-game"><input type="button" onclick="loadGame('{{ game.game_id }}')" value="load game" style="margin-right: 10px;" />{{ game.player_1_name }} : {{ game.player_2_name }}</div>#}
+{#                        <div id="game-{{ game.game_id }}" class="saved-game"><input type="button" onclick="loadGame('{{ game.game_id }}')" value="load game" style="margin-right: 10px;" />{{ game.black_name }} : {{ game.white_name }}</div>#}
 {#                    {% endfor %}#}
 {#                </div>#}
 {#            </div>#}

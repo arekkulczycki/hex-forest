@@ -1,5 +1,5 @@
 body {
-    background: rgb(225, 225, 225);
+    background: rgb(191, 191, 191);
     color: #333;
     letter-spacing: 2px;
     /*text-transform: lowercase;*/
@@ -71,7 +71,7 @@ a {
     flex-direction: column;
     align-content: center;
     align-items: center;
-    background: rgba(215, 215, 215, 10);
+    background: rgba(210, 210, 210, 10);
     position: relative;
     /*box-shadow: 0.5vw 0vw 0.5vw 0vw rgba(120,0,0,.2),*/
     /*           -0.5vw -0.5vw 0vw 0.5vw rgba(120,120,0,.2),*/
@@ -157,7 +157,7 @@ a {
 .button {
     display: block;
     font-size: 1vw;
-    margin: 1vw 1vw;
+    margin: 0.5vw 0.5vw;
     padding: 0.4vw 0.6vw;
     width: 10vw;
     background-image: -webkit-gradient(linear, left top, left bottom, from(#f5f5f5));
@@ -188,15 +188,16 @@ a {
     position: absolute;
 }
 
-.player_1 {
+.black {
     background: black;
 }
 
-.player_2 {
+.white {
     background: white;
 }
 
 .player_box {
+    position: relative;
     min-height: 1vw;
     width: 50%;
     padding: 0.5vw 0.5vw 0.5vw 0.5vw;
@@ -205,7 +206,7 @@ a {
     font-size: 1vw;
     font-weight: bolder;
     /*background-color: #ffd5a1;*/
-    background-color: #FFCF79;
+    background-color: #dcc8be;
     /*background-image: url('/wood-grain.png');*/
     background-blend-mode: SOFT-LIGHT;
     font-family: monospace;
@@ -215,6 +216,13 @@ a {
 .player_text {
     display: list-item;
     list-style: none;
+}
+
+.player_turn {
+    position: absolute;
+    width: 1.2vw;
+    right: 0.6vw;
+    top: 0.5vw;
 }
 
 #message {
@@ -323,7 +331,7 @@ a {
     padding: 1vw;
     overflow-y: scroll;
     /*background-color: #ffd5a1;*/
-    background-color: #FFCF79;
+    background-color: #dcc8be;
     /*background-image: url('/wood-grain.png');*/
     /*background-blend-mode: SOFT-LIGHT;*/
     display: flex;
@@ -348,14 +356,14 @@ a {
 .cell {
     stroke: black;
     stroke-width: 1.0;
-    fill: #FFCF79;
+    fill: #dcc8be;
     /*background-image: url('/wood-grain.png');*/
     background-blend-mode: SOFT-LIGHT;
     pointer-events: visible;
 }
 
 .cell.hover {
-    fill: #efc27d;
+    fill: #beaaa0;
 }
 
 .player_name {

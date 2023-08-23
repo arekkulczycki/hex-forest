@@ -46,14 +46,18 @@ class BlindHexView:
                 visible_moves.append(move)
 
         last_move = visible_moves[-1] if visible_moves else None
+        moves_n = len(moves)
+        turn_int = 0 if game.status is not Status.IN_PROGRESS else 1 if moves_n % 2 == 1 else 2
 
         template_context = {
             "size": size,
             "rows": board.rows,
+            "mode": "blind",
             "owner": game.owner.name,
             "white_player": game.white.name if game.white else "join",
             "black_player": game.black.name if game.black else "join",
-            "show_swap": len(moves) == 1,
+            "turn": turn_int,
+            "show_swap": moves_n == 1,
             "show_start": game.owner == player and game.status is Status.PENDING,
             "game_status": game.status,
             "game_status_text": f"status: {Status(game.status).name.lower().replace('_', ' ')}",
