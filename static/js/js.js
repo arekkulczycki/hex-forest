@@ -6,6 +6,7 @@ const whiteColor = true;
 const storeMinimum = 10;
 var timeout = null;
 var lastMoveColor = true;
+var moveStack = [];
 
 function whenAvailable(name, callback) {
     var interval = 10; // ms
@@ -29,7 +30,21 @@ function identifyPlayer() {
     console.log('Player identified');
 }
 
+function setupEvents() {
+    let is_analysis = window.location.pathname.indexOf('/analysis') !== -1;
+
+    if (is_analysis) {
+        document.addEventListener('keyup', (event) => {
+            if (event.code === 'ArrowLeft') {
+                arrowLeft();
+            }
+        }, false);
+        fillMoveStack();
+    }
+}
+
 function connect() {
+    setupEvents();
     window.history.pushState({}, document.title, window.location.pathname);
 
     let wsAddress = script.getAttribute('ws-address');
@@ -38,7 +53,7 @@ function connect() {
     socket.onopen = function (e) {
         console.log('Connection established');
 
-        whenAvailable("Cookies", identifyPlayer)
+        whenAvailable("Cookies", identifyPlayer);
     };
 
     socket.onmessage = function (event) {
@@ -182,7 +197,8 @@ function connect() {
         console.log(`[error] ${error.message}`);
     };
 }
-connect();
+window.onload = connect;
+// connect();
 
 function chatMessage(data) {
     let playerName = data.player_name;
@@ -271,17 +287,31 @@ function boardClick(x, y) {
         color = colorMode === 'white'
     }
 
-    let is_analysis = window.location.pathname.indexOf('/analysis') !== -1
+    let is_analysis = window.location.pathname.indexOf('/analysis') !== -1;
+    let existingStoneId = getStoneIdIfExists(x, y);
+    if (is_analysis && existingStoneId) {
+        removeStone(existingStoneId);
+    } else {
+        let message = {
+            'action': 'board_put',
+            'mode': is_analysis ? 'analysis' : 'game',
+            'game_id': is_analysis ? null : window.location.href.split('/').at(-1),
+            'x': x,
+            'y': y,
+            'color': color,
+        };
+        socket.send(JSON.stringify(message))
+    }
+}
 
-    let message = {
-        'action': 'board_put',
-        'mode': is_analysis ? 'analysis' : 'game',
-        'game_id': is_analysis ? null : window.location.href.split('/').at(-1),
-        'x': x,
-        'y': y,
-        'color': color,
-    };
-    socket.send(JSON.stringify(message))
+function getStoneIdIfExists(x, y) {
+    if ($(`#${x}-${y}-0`).length) {
+        return `${x}-${y}-0`;
+    } else if ($(`#${x}-${y}-1`).length) {
+        return `${x}-${y}-1`;
+    } else {
+        return null;
+    }
 }
 
 function boardHover(id) {
@@ -313,21 +343,39 @@ function sendStore(winningPlayerId) {
     let message = {
         'action': 'store',
         'opening': $('#opening-decoded').val(),
-        'position': getAllStones(),
+        'position': getAllStoneIds(),
         'result': winningPlayerId,
     };
     socket.send(JSON.stringify(message));
+}
+
+function getAllStoneIds() {
+    let stones = [];
+    $('#board').find('circle').each((i, e) => {
+        if (e.id !== 'lastMoveMarker') {
+            stones.push(e.id);
+        }
+    });
+    return stones;
 }
 
 function getAllStones() {
     let stones = [];
     $('#board').find('circle').each((i, e) => {
         if (e.id !== 'lastMoveMarker') {
-            let color = $(e).attr('fill') === 'white' ? whiteColor : blackColor;
-            stones.push(`${e.id}-${color}`);
+            stones.push($(`#${e.id}`));
         }
     });
     return stones;
+}
+
+function fillMoveStack() {
+    let stones = getAllStones();
+    console.log(stones);
+    stones = stones.sort((s1, s2) => {return s1[0].order - s2[0].order});
+    stones.forEach((stone, i) => {
+        moveStack.push(stone[0].id);
+    });
 }
 
 function saveGame() {
@@ -403,7 +451,7 @@ function startGame() {
 }
 
 function sendClearBoard() {
-    let is_analysis = window.location.pathname.indexOf('/analysis') !== -1
+    let is_analysis = window.location.pathname.indexOf('/analysis') !== -1;
 
     let message = {
         'action': 'board_clear',
@@ -419,7 +467,7 @@ function clearBoard() {
 }
 
 function sendRemoveStone(id) {
-    let is_analysis = window.location.pathname.indexOf('/analysis') !== -1
+    let is_analysis = window.location.pathname.indexOf('/analysis') !== -1;
 
     let message = {
         'action': 'board_remove',
@@ -491,6 +539,7 @@ function putStone(id, cx, cy, color) {
     stone.setAttributeNS(null, 'onclick', `sendRemoveStone('${id}')`);
     $('#board').append(stone);
 
+    moveStack.push(id);
     putMarker(id, cx, cy);
 
     clearHints();
@@ -500,11 +549,20 @@ function putStone(id, cx, cy, color) {
         sendLoadHints();
     }
 
-    if (getAllStones().length === 1) {
+    if (getAllStoneIds().length === 1) {
         $(`#swap`).css('display', 'block');
     } else {
         $(`#swap`).css('display', 'none');
     }
+}
+
+function arrowLeft() {
+    let id = moveStack.pop();
+    removeStone(id);
+}
+
+function arrowRight() {
+
 }
 
 function putMarker(id, cx, cy){
@@ -523,13 +581,13 @@ function sendLoadHints() {
     let message = {
         'action': 'hints',
         'opening': $('#opening-decoded').val(),
-        'position': getAllStones()
+        'position': getAllStoneIds()
     };
     socket.send(JSON.stringify(message))
 }
 
 function setOpening() {
-    let stones = getAllStones();
+    let stones = getAllStoneIds();
     //if (stones.length === 2) {
     //    $('#swap').prop('disabled', 'disabled');
     //

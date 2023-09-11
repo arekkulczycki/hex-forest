@@ -67,7 +67,7 @@ class GameView(BaseView):
 
         # the NORMAL variant
         size = 13
-        board = Board(size)
+        board = Board(size=size)
 
         moves = await game.moves.all().order_by("index")
         last_move = moves[-1] if moves else None

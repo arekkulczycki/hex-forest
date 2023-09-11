@@ -84,7 +84,7 @@ class AnalysisView(BaseView):
         request: Request, moves: List[FakeMove]
     ) -> Response:
         size = request.headers.get("board-size", 13)
-        board = Board(size)
+        board = Board(size=size)
 
         archive_games = (
             []
@@ -98,7 +98,7 @@ class AnalysisView(BaseView):
             "mode": "analysis",
             "archive_games": archive_games,
             "archive_move_limit": MAX_ARCHIVE_RECORD_LENGTH,
-            "stones": [Cell.render_stone(move.color, move.y, move.x) for move in moves],
+            "stones": [Cell.render_stone(move.color, move.y, move.x, i) for i, move in enumerate(moves)],
         }  # TODO: hovering over archive suggestions highlight cells on board
         return await BaseView._view_base(
             request, BaseView._game_template, template_context

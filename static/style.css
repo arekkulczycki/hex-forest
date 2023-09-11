@@ -4,6 +4,7 @@ body {
     letter-spacing: 2px;
     /*text-transform: lowercase;*/
     white-space: nowrap;
+    font-size: 1vw;
 }
 
 a {

@@ -3,9 +3,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Optional
+from itertools import groupby
+from typing import Iterable, TYPE_CHECKING, Optional, Tuple
 
 from tortoise import Model, fields
+
+from hex_forest.common import BitBoard
 
 if TYPE_CHECKING:
     from hex_forest.models import Game, Player
@@ -31,7 +34,6 @@ class Move(Model):
     class Meta:
         unique_together = (("game", "index"), )
 
-
     @property
     def color(self) -> Color:
         """
@@ -47,6 +49,9 @@ class Move(Model):
     def fake(self) -> FakeMove:
         return FakeMove(index=self.index, x=self.x, y=self.y)
 
+    def get_mask(self, size: Optional[int] = None) -> BitBoard:
+        return 1 << ((self.x - 1) + self.y * (size or self.game.board_size))
+
 
 @dataclass
 class FakeMove:
@@ -58,5 +63,36 @@ class FakeMove:
     def color(self) -> Color:
         return self.index % 2 != 0
 
+    def get_mask(self, size: int) -> BitBoard:
+        return 1 << ((self.x - 1) + self.y * size)
+
     def __hash__(self):  # TODO: add proper type hint
         return hash((self.index, self.x, self.y))
+
+    def get_coord(self) -> str:
+        """"""
+
+        return f"{chr(self.x + 97)}{self.y}"
+
+    @classmethod
+    def from_coord(cls, index: int, coord: str) -> FakeMove:
+        """"""
+
+        groups = groupby(coord, str.isalpha)
+        col_str, row_str = ("".join(g[1]) for g in groups)
+
+        return cls(index, ord(col_str) - 97, int(row_str))
+
+    @staticmethod
+    def mask_from_coord(coord: str, size: int) -> BitBoard:
+        """"""
+
+        col_str: str
+        row_str: str
+        g: Tuple[bool, Iterable]
+
+        groups = groupby(coord, str.isalpha)
+        col_str, row_str = ("".join(g[1]) for g in groups)
+
+        # a1 => (0, 0) => 0b1
+        return 1 << (ord(col_str) - 97 + size * (int(row_str) - 1))

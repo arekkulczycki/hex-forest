@@ -124,6 +124,12 @@ class Game(Model):
 
         return await self.move_count % 2 == 1
 
+    @property
+    async def notation(self) -> str:
+        """
+        Get game notation like
+        """
+
     async def save(
         self,
         using_db: Optional[BaseDBAsyncClient] = None,

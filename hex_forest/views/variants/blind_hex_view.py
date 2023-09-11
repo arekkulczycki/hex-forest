@@ -20,7 +20,7 @@ class BlindHexView:
     @staticmethod
     async def show_board(request: Request, player: Player, game: Game) -> Response:
         size = 13
-        board = Board(size)
+        board = Board(size=size)
 
         moves = await game.moves.all().order_by("index")
 
