@@ -5,7 +5,11 @@
     <link rel="stylesheet" href="/static/style.css?v={{ version }}">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" async></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.5/js.cookie.min.js" async></script>
-    <script src="/static/js/js.js?v={{ version }}" ws-address="{{ websocket_address }}" mode="{{ mode }}" async></script>
+    <script src="/static/js/js.js?v={{ version }}" ws-address="{{ websocket_address }}" mode="{{ mode }}"></script>
+    {% if mode == 'ai' %}
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.2/full/pyodide.js" async></script>
+    <script src="/static/wasm/main.js?v={{ version }}" async></script>
+    {% endif %}
 </head>
 <body>
     <div class="lobby-nav">
@@ -78,7 +82,16 @@
                 {% for row in rows %}
                     {% set outer_loop = loop %}
                     {% for cell in row %}
-                        <polygon id="{{ cell.id }}" points="{{ cell.points }}" class="cell" onmouseout="boardUnhover('{{ cell.id }}')" onmouseover="boardHover('{{ cell.id }}')" onclick="boardClick({{ loop.index0 }}, {{ outer_loop.index0 }})"></polygon>
+                        <polygon id="{{ cell.id }}" points="{{ cell.points }}" class="cell" cx="{{ cell.cx }}" cy="{{ cell.cy }}"
+                                 onmouseout="boardUnhover('{{ cell.id }}')"
+                                 onmouseover="boardHover('{{ cell.id }}')"
+                                 onclick={% if mode == "analysis" %}
+                                            "putStone('{{ cell.id }}', null, false);"
+                                         {% else %}
+                                            "boardClick({{ cell.id }});"
+                                         {% endif %}
+                                 oncontextmenu="return putStone('{{ cell.id }}', null, true);">
+                        </polygon>
                     {% endfor %}
                 {% endfor %}
                 {% for stone in stones %}
@@ -94,6 +107,7 @@
             <div class="menu-paragraph">
                 <input type="button" class="button tight" value="clear board" onclick="sendClearBoard()">
                 <a href="javascript:goToRotatedBoard();"><input type="button" class="button tight" value="rotate 180"></a>
+                <a href="javascript:goToMirroredBoard();"><input type="button" class="button tight" value="mirror"></a>
                 <input type="button" class="button tight" value="copy link" onclick="copyLink()">
             </div>
 {#            <div class="menu-paragraph">#}

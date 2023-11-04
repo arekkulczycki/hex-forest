@@ -11,6 +11,7 @@ from tortoise.exceptions import IntegrityError, DoesNotExist
 from hex_forest.common.board import Board, Cell
 from hex_forest.models import Player
 from hex_forest.models.game import Game, Status, Variant
+from hex_forest.views.ai_view import AiView
 from hex_forest.views.base_view import BaseView
 from hex_forest.views.variants.blind_hex_view import BlindHexView
 
@@ -64,6 +65,8 @@ class GameView(BaseView):
         player, game = await GameView.get_game_data(request)
         if game.variant is Variant.BLIND:
             return await BlindHexView.show_board(request, player, game)
+        elif game.variant is Variant.AI:
+            return await AiView.show_board(request, player, game)
 
         # the NORMAL variant
         size = 13

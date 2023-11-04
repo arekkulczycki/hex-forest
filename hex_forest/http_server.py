@@ -1,18 +1,19 @@
 # -*- coding: utf-8 -*-
 from typing import Callable, List, Tuple
 
-from css_html_js_minify import js_minify, css_minify, html_minify
+from css_html_js_minify import css_minify, html_minify, js_minify
 from japronto import Application
 from japronto.request.crequest import Request
 from japronto.response.py import Response
 from jinja2 import Template
 
-from hex_forest.views import LobbyView, GameView, AnalysisView
+from hex_forest.views import AnalysisView, GameView, LobbyView
+from hex_forest.views.ai_view import AiView
 from hex_forest.views.archive_view import ArchiveView
 from hex_forest.views.base_view import BaseView
 
 
-class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView):
+class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
     """
     Japronto web server.
     """

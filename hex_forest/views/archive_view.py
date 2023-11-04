@@ -201,6 +201,7 @@ class ArchiveView(BaseView):
         n_moves = len(moves)
 
         if n_moves:
+            # query unions the positions with 180 deg rotated positions, mirrored positions are not needed as database holds only games starting with black stone
             records = await ArchiveRecord.raw(
                 f"""
                 with gamelength as (VALUES ({n_moves}))
@@ -208,22 +209,19 @@ class ArchiveView(BaseView):
                     select unioned.game_id, 
                             CASE WHEN (game.status = {Status.BLACK_WON} and not game.swapped) or (game.status = {Status.WHITE_WON} and game.swapped) 
                                 THEN 1 ELSE 0 END as black_win,
-                            CASE WHEN unioned.mirrored THEN {size - 1} - move.x ELSE move.x END as x,
-                            CASE WHEN unioned.mirrored THEN {size - 1} - move.y ELSE move.y END as y from (
-                        select false as mirrored, game_id from (select count(game_id) c, game_id from (
+                            CASE WHEN unioned.rotated THEN {size - 1} - move.x ELSE move.x END as x,
+                            CASE WHEN unioned.rotated THEN {size - 1} - move.y ELSE move.y END as y from (
+                        select false as rotated, game_id from (select count(game_id) c, game_id from (
                             select game_id, concat(x,',', y, CASE WHEN mod(move.index, 2) = 0 THEN 'B' ELSE 'W' END) as crd from move where move.index < (table gamelength)
                         ) m where m.crd in ({moves_str}) group by game_id) grouped where grouped.c = (table gamelength)
                         union all
-                        select true as mirrored, game_id from (select count(game_id) c, game_id from (
+                        select true as rotated, game_id from (select count(game_id) c, game_id from (
                             select game_id, concat(x,',', y, CASE WHEN mod(move.index, 2) = 0 THEN 'B' ELSE 'W' END) as crd from move where move.index < (table gamelength)
                         ) m where m.crd in ({moves_str_rotated}) group by game_id) grouped where grouped.c = (table gamelength)
                     ) unioned join game on game.id = unioned.game_id and game.board_size = {size} join move on move.index = (table gamelength) and move.game_id = unioned.game_id
                 ) calculated group by x, y order by number desc limit 10;
                 """
             )
-            print(n_moves)
-            print(moves_str)
-            print(moves_str_rotated)
         else:
             records = await ArchiveRecord.raw(
                 f"""

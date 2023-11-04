@@ -50,8 +50,8 @@ class BoardCommunication:
         """"""
 
         color = data["color"]
-        x: int = data["x"]
-        y: int = data["y"]
+        cell_id: str = data["cell_id"]
+        x, y = Cell.id_to_xy(cell_id)
 
         await player.send(BoardCommunication.get_move_message_dict(player, color, x, y))
 
@@ -64,8 +64,8 @@ class BoardCommunication:
         color = await game.turn
 
         if (color and player == game.white) or (not color and player == game.black):
-            x: int = data["x"]
-            y: int = data["y"]
+            cell_id: str = data["cell_id"]
+            x, y = Cell.id_to_xy(cell_id)
 
             message_dict = BoardCommunication.get_move_message_dict(player, color, x, y)
             send_to_game = (
@@ -173,8 +173,16 @@ class BoardCommunication:
             )
             return
 
-        action = "takeSpot"
         color = data["color"]
+        if game.variant is Variant.AI:
+            await self._take_ai_spot(game, player, color)
+        else:
+            await self._take_spot(game, player, color)
+
+    async def _take_spot(self, game: Game, player: Player, color) -> None:
+        """"""
+
+        action = "takeSpot"
         if color:
             if not game.white:
                 game.white = player
@@ -188,7 +196,7 @@ class BoardCommunication:
                     await player.send(
                         {"action": "alert", "message": "Side already taken."}
                     )
-                    return
+                    action = None
         else:
             if not game.black:
                 game.black = player
@@ -202,20 +210,35 @@ class BoardCommunication:
                     await player.send(
                         {"action": "alert", "message": "Side already taken."}
                     )
-                    return
+                    action = None
 
-        message_dict = {
-            "action": action,
-            "color": color,
-            "player_name": player.name,
-        }
+        if action:
+            message_dict = {
+                "action": action,
+                "color": color,
+                "player_name": player.name,
+            }
 
-        tasks = [game.send(self.connected_clients_rev, message_dict), game.save()]
+            tasks = [game.send(self.connected_clients_rev, message_dict), game.save()]
 
-        try:
-            await asyncio.wait(tasks)
-        except IntegrityError:
-            traceback.print_exc()
+            try:
+                await asyncio.wait(tasks)
+            except IntegrityError:
+                traceback.print_exc()
+
+    async def _take_ai_spot(self, game, player, color):
+        """"""
+
+        if color:
+            game.white = player
+            game.black = None
+        else:
+            game.white = None
+            game.black = player
+
+        await asyncio.wait([player.send(
+            {"action": "takeSpotAi", "color": color, "player_name": player.name}
+        ), game.save()])
 
     async def _handle_swap(self, player: Player, data: Dict) -> None:
         """"""
@@ -280,9 +303,15 @@ class BoardCommunication:
             game.started_at = now()
             game.status = Status.IN_PROGRESS
 
-            message_dict = {"action": "gameStarted"}
             await asyncio.wait(
-                [game.save(), game.send(self.connected_clients_rev, message_dict)]
+                [game.save(), game.send(self.connected_clients_rev, {"action": "gameStarted"})]
+            )
+        elif game.owner == player and (game.white or game.black) and game.variant is Variant.AI:
+            game.started_at = now()
+            game.status = Status.IN_PROGRESS
+
+            await asyncio.wait(
+                [game.save(), player.send({"action": "gameStarted"})]
             )
         else:
             # only owner can start

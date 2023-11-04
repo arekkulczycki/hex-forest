@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from enum import IntEnum
 from typing import List, Optional
 
 from japronto.request.crequest import Request
@@ -9,6 +10,11 @@ from hex_forest.constants import MAX_ARCHIVE_RECORD_LENGTH
 from hex_forest.models.move import FakeMove, Move
 from hex_forest.views.archive_view import ArchiveView
 from hex_forest.views.base_view import BaseView
+
+
+class Action(IntEnum):
+    ROTATE: int = 0
+    MIRROR: int = 1
 
 
 class AnalysisView(BaseView):
@@ -30,7 +36,13 @@ class AnalysisView(BaseView):
         moves_str: Optional[str] = request.query.get("moves")
 
         if action == "rotate":
-            return await AnalysisView.analysis_board_rotate(request, moves_str)
+            return await AnalysisView.analysis_board_action(
+                request, moves_str, action=Action.ROTATE
+            )
+        elif action == "mirror":
+            return await AnalysisView.analysis_board_action(
+                request, moves_str, action=Action.MIRROR
+            )
         else:
             return await AnalysisView.analysis_board_from_moves(request, moves_str)
 
@@ -43,13 +55,13 @@ class AnalysisView(BaseView):
         return await AnalysisView.analysis_board_with_archive(request, moves)
 
     @staticmethod
-    async def analysis_board_rotate(
-        request: Request, moves_str: Optional[str]
+    async def analysis_board_action(
+        request: Request, moves_str: Optional[str], action: Action
     ) -> Response:
         size = request.headers.get("board-size", 13)
 
         moves = (
-            AnalysisView.get_moves_from_str(moves_str, size=size, rotated=True)
+            AnalysisView.get_moves_from_str(moves_str, size=size, action=action)
             if moves_str
             else []
         )
@@ -58,18 +70,25 @@ class AnalysisView(BaseView):
 
     @staticmethod
     def get_moves_from_str(
-        moves_str: str, *, size: int = 13, rotated: bool = False
+        moves_str: str, *, size: int = 13, action: Action = None
     ) -> List[FakeMove]:
         moves = []
-        for move_str in moves_str.split(","):
-            x, y, color = move_str.split("-")
+        color_mod = None
+        for i, move_str in enumerate(moves_str.split(",")):
+            cell_id, color_str = move_str.split("-")
+            if color_mod is None:
+                color_mod = 0 if color_str == "w" else 1
+
+            x, y = Cell.id_to_xy(cell_id)
+            # fmt: off
             moves.append(
                 FakeMove(
-                    index=int(color),
-                    x=size - int(x) - 1 if rotated else int(x),
-                    y=size - int(y) - 1 if rotated else int(y),
+                    index=i + color_mod if action is Action.MIRROR else i,
+                    x=size - int(x) - 1 if action is Action.ROTATE else int(y) if action is Action.MIRROR else int(x),
+                    y=size - int(y) - 1 if action is Action.ROTATE else int(x) if action is Action.MIRROR else int(y),
                 )
             )
+            # fmt: on
         return moves
 
     @staticmethod
@@ -98,7 +117,10 @@ class AnalysisView(BaseView):
             "mode": "analysis",
             "archive_games": archive_games,
             "archive_move_limit": MAX_ARCHIVE_RECORD_LENGTH,
-            "stones": [Cell.render_stone(move.color, move.y, move.x, i) for i, move in enumerate(moves)],
+            "stones": [
+                Cell.render_stone(move.color, move.y, move.x, i)
+                for i, move in enumerate(moves)
+            ],
         }  # TODO: hovering over archive suggestions highlight cells on board
         return await BaseView._view_base(
             request, BaseView._game_template, template_context

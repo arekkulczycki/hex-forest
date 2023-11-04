@@ -60,7 +60,8 @@ class Board:
 
         self.turn = False
         self.occupied_co = {False: 0, True: 0}
-        self.unoccupied = 0
+        self.unoccupied = (1 << self.size**2) - 1
+        self.move_stack = []
 
     def initialize_notation(self, notation: str) -> None:
         """"""
@@ -77,17 +78,18 @@ class Board:
 
                 move_str = ""
                 color = not color
-                i += 1
+
+        self.unoccupied ^= (self.occupied_co[True] | self.occupied_co[False])
 
         self.turn = color
 
     @staticmethod
     def generate_rows(size):
         rows = []
-        for r in range(size):
+        for y in range(size):
             cells = []
-            for c in range(size):
-                cell = Cell(r, c)
+            for x in range(size):
+                cell = Cell(x, y)
                 cells.append(cell)
             rows.append(cells)
         return rows
@@ -272,3 +274,26 @@ class Board:
             raise BoardShapeError(f"trying to shift down {bin(mask)}")
 
         return mask >> (self.size - 1)
+
+    def push_coord(self, coord: str) -> None:
+        """"""
+
+        self.push(FakeMove.from_coord(coord, self.size))
+
+    def push(self, move: FakeMove) -> None:
+        """"""
+
+        mask = move.get_mask(self.size)
+        self.occupied_co[self.turn] |= mask
+        self.unoccupied ^= mask
+
+        self.move_stack.append(move)
+
+        self.turn = not self.turn
+
+    def pop(self) -> None:
+        """"""
+
+        self.occupied_co[not self.turn] ^= self.move_stack.pop().get_mask(self.size)
+
+        self.turn = not self.turn

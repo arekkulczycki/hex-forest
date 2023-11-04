@@ -5,8 +5,8 @@ from japronto.request.crequest import Request
 from japronto.response.py import Response
 
 from hex_forest.common.board import Board, Cell
-from hex_forest.models import Move, Player
-from hex_forest.models.game import Game, Status
+from hex_forest.models import Game, Move, Player
+from hex_forest.models.game import Status
 from hex_forest.views.base_view import BaseView
 
 

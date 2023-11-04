@@ -43,9 +43,13 @@ function setupEvents() {
     }
 }
 
+function cleanUrl() {
+    window.history.pushState({}, document.title, window.location.pathname);
+}
+
 function connect() {
     setupEvents();
-    window.history.pushState({}, document.title, window.location.pathname);
+    cleanUrl();
 
     let wsAddress = script.getAttribute('ws-address');
     socket = new WebSocket(wsAddress);
@@ -85,6 +89,9 @@ function connect() {
                 break;
             case 'takeSpot':
                 takeSpot(data)
+                break;
+            case 'takeSpotAi':
+                takeSpotAi(data)
                 break;
             case 'leaveSpot':
                 leaveSpot(data)
@@ -273,12 +280,12 @@ function removePlayer(player_id, player_name) {
     }
 }
 
-function boardClick(x, y) {
+function boardClick(cell_id) {
     let colorMode = $('#color_alternate').prop('checked') ? 'alternate' :
         ($('#color_black').prop('checked') ? 'black' : 'white');
 
     let color
-    if (colorMode == 'alternate') {
+    if (colorMode === 'alternate') {
         let moves = getAllMoves();
         let nWhiteMoves = moves.filter(x => x.color).length;
         let nBlackMoves = moves.length - nWhiteMoves;
@@ -288,27 +295,28 @@ function boardClick(x, y) {
     }
 
     let is_analysis = window.location.pathname.indexOf('/analysis') !== -1;
-    let existingStoneId = getStoneIdIfExists(x, y);
+    let existingStoneId = getStoneIdIfExists(cell_id);
     if (is_analysis && existingStoneId) {
         removeStone(existingStoneId);
+    } else if (is_analysis) {
+        // TODO: maybe putStone, but for now ignore, maybe remove the boardClick function altogether
     } else {
         let message = {
             'action': 'board_put',
             'mode': is_analysis ? 'analysis' : 'game',
             'game_id': is_analysis ? null : window.location.href.split('/').at(-1),
-            'x': x,
-            'y': y,
+            'cell_id': cell_id,
             'color': color,
         };
         socket.send(JSON.stringify(message))
     }
 }
 
-function getStoneIdIfExists(x, y) {
-    if ($(`#${x}-${y}-0`).length) {
-        return `${x}-${y}-0`;
-    } else if ($(`#${x}-${y}-1`).length) {
-        return `${x}-${y}-1`;
+function getStoneIdIfExists(cell_id) {
+    if ($(`#${cell_id}-w`).length) {
+        return `${cell_id}-w`;
+    } else if ($(`#${cell_id}-b`).length) {
+        return `${cell_id}-b`;
     } else {
         return null;
     }
@@ -371,7 +379,6 @@ function getAllStones() {
 
 function fillMoveStack() {
     let stones = getAllStones();
-    console.log(stones);
     stones = stones.sort((s1, s2) => {return s1[0].order - s2[0].order});
     stones.forEach((stone, i) => {
         moveStack.push(stone[0].id);
@@ -508,7 +515,9 @@ function sendMessage() {
 }
 
 function removeStone(id) {
-    lastMoveColor = !lastMoveColor;
+    if (id.indexOf('ghost') === -1) {
+        lastMoveColor = !lastMoveColor;
+    }
 
     let lastMoveMarker = $('#lastMoveMarker');
     if (lastMoveMarker.length) {
@@ -519,41 +528,77 @@ function removeStone(id) {
     setOpening();
 }
 
-function putStone(id, cx, cy, color) {
-    lastMoveColor = !lastMoveColor;
+function putStone(cell_id, color, ghost=false) {
+    let existingStoneId = getStoneIdIfExists(cell_id);
+    let is_analysis = window.location.pathname.indexOf('/analysis') !== -1;
+    if (is_analysis && existingStoneId) {
+        removeStone(existingStoneId);
+        return;
+    }
 
+    let cell = $(`#${cell_id}`);
     let lastMoveMarker = $('#lastMoveMarker');
     if (lastMoveMarker.length) {
         lastMoveMarker.remove();
     }
 
+    if (color === null) {
+        let a = $('#color_alternate');
+        if (a.prop('checked')) {
+            color = !lastMoveColor;
+        } else {
+            let w = $('#color_white');
+
+            color = w.prop('checked');
+        }
+    }
+
     let fill = color ? 'white' : 'black';
+    let c = color ? 'w' : 'b';
 
     let xmlns = $('#xmlns').val();
     let stone = document.createElementNS(xmlns,'circle');
-    stone.setAttributeNS(null, 'id', id);
-    stone.setAttributeNS(null, 'cx', cx);
-    stone.setAttributeNS(null, 'cy', cy);
+
+    let id = `${cell.attr('id')}-${c}`;
+    stone.setAttributeNS(null, 'id', (ghost ? `${id}-ghost` : id));
+    stone.setAttributeNS(null, 'cx', cell.attr('cx'));
+    stone.setAttributeNS(null, 'cy', cell.attr('cy'));
     stone.setAttributeNS(null, 'r', '11.0');
     stone.setAttributeNS(null, 'fill', fill);
-    stone.setAttributeNS(null, 'onclick', `sendRemoveStone('${id}')`);
-    $('#board').append(stone);
 
-    moveStack.push(id);
-    putMarker(id, cx, cy);
+    if (!ghost) {
+        if (is_analysis) {
+            stone.setAttributeNS(null, 'onclick', `removeStone('${id}');`);
+        } else {
+            stone.setAttributeNS(null, 'onclick', `sendRemoveStone('${id}');`);
+        }
+        $('#board').append(stone);
+        putMarker(id, cell.attr("cx"), cell.attr("cy"));
 
-    clearHints();
+        moveStack.push(id);
 
-    setOpening();
-    if (mode === 'free' && $('#hints').prop('checked')) {
-        sendLoadHints();
-    }
+        if (getAllStoneIds().length === 1) {
+            $(`#swap`).css('display', 'block');
+        } else {
+            $(`#swap`).css('display', 'none');
+        }
 
-    if (getAllStoneIds().length === 1) {
-        $(`#swap`).css('display', 'block');
+        lastMoveColor = !lastMoveColor;
     } else {
-        $(`#swap`).css('display', 'none');
+        stone.setAttributeNS(null, 'onclick', `removeStone('${id}-ghost'); putStone('${cell_id}', null, false);`);
+        stone.setAttributeNS(null, 'oncontextmenu', `removeStone('${id}-ghost'); return false;`);
+        stone.setAttributeNS(null, 'opacity', `40%`);
+
+        $('#board').append(stone);
     }
+
+    // clearHints();
+    //
+    // setOpening();
+    // if (mode === 'free' && $('#hints').prop('checked')) {
+    //     sendLoadHints();
+    // }
+    return false;
 }
 
 function arrowLeft() {
@@ -692,6 +737,7 @@ function goToArchive(limit) {
 }
 
 function showWarning() {
+    cleanUrl();
     let warning = $('#warning') ?? null;
     if (warning) {
         alert(warning.html());
@@ -731,9 +777,8 @@ function handlePlayerLeaved(data) {
 function handleMove(data) {
     let color = data.move.color;
     let id = data.move.id;
-    let cx = data.move.cx;
-    let cy = data.move.cy;
-    putStone(id, cx, cy, color);
+    let cell_id = id.split('-')[0];
+    putStone(cell_id, color);
 
     setTurnMarker(!data.move.color);
 }
@@ -754,6 +799,22 @@ function takeSpot(data) {
         if (white.html().trim() === playerName) {
             white.html("join");
         }
+        black.html(playerName);
+    }
+}
+
+function takeSpotAi(data) {
+    let playerName = data.player_name;
+    let color = data.color;
+
+    let white = $('#white_box_text');
+    let black = $('#black_box_text');
+
+    if (color) {
+        white.html(playerName);
+        black.html("AI");
+    } else {
+        white.html("AI");
         black.html(playerName);
     }
 }
@@ -796,9 +857,8 @@ function passed(data) {
     data.moves.forEach((move, i) => {
         let color = move.color;
         let id = move.id;
-        let cx = move.cx;
-        let cy = move.cy;
-        putStone(id, cx, cy, color);
+        let cell_id = id.split('-')[0];
+        putStone(cell_id, color);
     });
 
     setTurnMarker(!data.color);
@@ -817,7 +877,7 @@ function setTurnMarker(turn) {
 function getAllMoves() {
     let moves = [];
     $('#board').find('circle').each((i, e) => {
-        if (e.id !== 'lastMoveMarker') {
+        if (e.id !== 'lastMoveMarker' && e.id.indexOf('ghost') === -1) {
             let color = $(e).attr('fill') === 'white';
             let split = e.id.split('-')
             moves.push({'color': color, 'x': split[0], 'y': split[1]});
@@ -829,7 +889,7 @@ function getAllMoves() {
 function getAllMovesUrl() {
     let moves = [];
     $('#board').find('circle').each((i, e) => {
-        if (e.id !== 'lastMoveMarker') {
+        if (e.id !== 'lastMoveMarker' && e.id.indexOf('ghost') === -1) {
             moves.push(e.id);
         }
     });
@@ -838,6 +898,10 @@ function getAllMovesUrl() {
 
 function goToRotatedBoard() {
     window.location = `/analysis?moves=${getAllMovesUrl()}&action=rotate`;
+}
+
+function goToMirroredBoard() {
+    window.location = `/analysis?moves=${getAllMovesUrl()}&action=mirror`;
 }
 
 function copyLink() {

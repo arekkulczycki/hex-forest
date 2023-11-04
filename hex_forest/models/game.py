@@ -30,6 +30,7 @@ class Status(IntEnum):
 class Variant(IntEnum):
     NORMAL = 0
     BLIND = 1
+    AI = 2
 
 
 class Game(Model):

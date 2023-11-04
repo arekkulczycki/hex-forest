@@ -1,22 +1,34 @@
 # -*- coding: utf-8 -*-
+from itertools import groupby
 from typing import Tuple
 
 
 class Cell:
 
-    def __init__(self, y, x):
-        r = int(y)
-        c = int(x)
+    def __init__(self, x: int, y: int):
         if y < 0 or x < 0:
             raise Exception
-        self.id = f'{chr(x + 97)}{y + 1}'
+        self.id = self.get_id(x, y)
         self.points = self.generate_points(y, x)
         self.width = 15.07
         self.state = 0  # 0-empty, 1-black, 2-white
 
+        self.cx = self.stone_x(y, x)
+        self.cy = self.stone_y(y)
+
+    @classmethod
+    def get_id(cls, x, y):
+        return f'{chr(x + 97)}{y + 1}'
+
     @classmethod
     def stone_id(cls, x, y, color):
-        return f"{x}-{y}-{int(color)}"
+        return f"{cls.get_id(x, y)}-{('w' if  color else 'b')}"
+
+    @classmethod
+    def id_to_xy(cls, id_: str):
+        groups = groupby(id_, str.isalpha)
+        col_str, row_str = ("".join(g[1]) for g in groups)
+        return ord(col_str) - 97, int(row_str) - 1
 
     @classmethod
     def stone_x(cls, y, x):
@@ -61,7 +73,8 @@ class Cell:
         text_color = "white" if color else "black"
         cx = Cell.stone_x(y, x)
         cy = Cell.stone_y(y)
-        return f'<circle id="{id_}" cx="{cx}" cy="{cy}" r="11.0" fill="{text_color}" order="{order}" onclick="sendRemoveStone(\'{id_}\')"></circle>'
+        return f'<circle id="{id_}" cx="{cx}" cy="{cy}" r="11.0" fill="{text_color}" order="{order}" ' \
+               f'onclick="sendRemoveStone(\'{id_}\')"></circle>'
 
     @staticmethod
     def render_marker(color: bool, y: int, x: int) -> str:

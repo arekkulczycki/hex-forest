@@ -27,7 +27,10 @@ class BaseView:
         headers: Optional[Dict[str, Any]] = None,
     ) -> Response:
         if headers is None:
-            headers = {}
+            headers = {
+                "Cross-Origin-Opener-Policy": "same-origin",
+                "Cross-Origin-Embedder-Policy": "require-corp",
+            }
 
         request.transport.set_write_buffer_limits(high=TRANSFER_HIGH_LIMIT)
 

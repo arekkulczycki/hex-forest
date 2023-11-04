@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" async></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/2.2.1/js.cookie.min.js" async></script>
     <script src="/static/js/js.js?v={{ version }}" ws-address="{{ websocket_address }}" black-color="{{ black_color }}"
-            white-color="{{ white_color }}" mode="{{ mode }}" store-minimum="{{ store_minimum }}" async></script>
+            white-color="{{ white_color }}" mode="{{ mode }}" store-minimum="{{ store_minimum }}"></script>
 </head>
 
 <body class="body" {% if warning %}onload="showWarning();"{% endif %}>
@@ -23,10 +23,11 @@
             <div>
                 <input type="radio" id="variant-normal" name="variant" value="normal" checked><label for="variant-normal">classic</label>
                 <input type="radio" id="variant-blind" name="variant" value="blind"><label for="variant-blind">blind</label>
+                <input type="radio" id="variant-ai" name="variant" value="ai"><label for="variant-ai">ai</label>
             </div>
         </form>
         <div class="new-game-settings"></div>
-        <a href="" onclick="alert('sorry, not implemented yet :(')"><button class="button" onclick="alert('sorry, not implemented yet :(')">new game vs AI</button></a>
+{#        <a href="/ai"><button class="button">new game vs AI</button></a>#}
         <a href="/analysis"><button class="button">analysis board</button></a>
         <a href="" onclick="alert('sorry, not implemented yet :(')"><button class="button">settings</button></a>
         {% if not is_logged %}
