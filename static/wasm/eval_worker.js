@@ -5,8 +5,8 @@ async function setupPyodide() {
     self.pyodide = await loadPyodide();
     await self.pyodide.loadPackage("micropip");
     self.micropip = pyodide.pyimport("micropip");
-    // await self.micropip.install("/static/wasm/hackable_bot-0.0.4-py3-none-any.whl")
-    await self.micropip.install("http://localhost:8010/hackable_bot-0.0.4-py3-none-any.whl")
+    await self.micropip.install("/static/wasm/hackable_bot-0.0.4-py3-none-any.whl")
+    // await self.micropip.install("http://localhost:8010/hackable_bot-0.0.4-py3-none-any.whl")
 }
 
 async function setupWorker(memoryArr, workerNum, boardInitKwargs) {

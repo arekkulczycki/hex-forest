@@ -1,12 +1,14 @@
+const version = script.getAttribute('version');
+
 async function setupWorkers(numEvalWorkers) {
   const boardInitKwargs = {notation: "", size: 13};
 
   const sToDChannel = new MessageChannel();
   const dToSChannel = new MessageChannel();
 
-  self.searchWorker = new Worker('/static/wasm/search_worker.js');  // URL.createObjectURL(new Blob([content], {type: "text/javascript"})))
+  self.searchWorker = new Worker(`/static/wasm/search_worker.js?v=${version}`);  // URL.createObjectURL(new Blob([content], {type: "text/javascript"})))
   self.searchWorker.onmessage = handleSearchMessage;
-  self.distributorWorker = new Worker('/static/wasm/distributor_worker.js');
+  self.distributorWorker = new Worker(`/static/wasm/distributor_worker.js?v=${version}`);
 
   self.searchWorker.postMessage({"type": "distributor_port", "port": sToDChannel.port1}, [sToDChannel.port1])
   self.distributorWorker.postMessage({"type": "distributor_port", "port": sToDChannel.port2}, [sToDChannel.port2])
@@ -18,7 +20,7 @@ async function setupWorkers(numEvalWorkers) {
   self.eToSChannels = [];
   self.dToEChannels = [];
   for (let i=0;i<numEvalWorkers;i++) {
-    let worker = new Worker('/static/wasm/eval_worker.js')
+    let worker = new Worker(`/static/wasm/eval_worker.js?v=${version}`)
     worker.onmessage = handleEvalMessage;
 
     let fromChannel = new MessageChannel();
@@ -49,7 +51,7 @@ async function setupPyodide() {
   self.pyodide = await loadPyodide();
   await self.pyodide.loadPackage("micropip");
   self.micropip = pyodide.pyimport("micropip");
-  await self.micropip.install("/static/wasm/hackable_bot-0.0.4-py3-none-any.whl")
+  await self.micropip.install(`/static/wasm/hackable_bot-0.0.4-py3-none-any.whl?v=${version}`)
 }
 
 const numEvalWorkers = 4;

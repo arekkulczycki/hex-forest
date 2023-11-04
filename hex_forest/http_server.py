@@ -24,6 +24,10 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
     _css: str
     _js: str
     _cookieconsent: str
+    _wasm_main: str
+    _wasm_search: str
+    _wasm_distributor: str
+    _wasm_eval: str
     _favicon: str
     _wood_grain: str
 
@@ -34,6 +38,10 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
             ("/static/style.css", self.styles),
             ("/static/js/js.js", self.scripts),
             ("/static/js/cookieconsent.js", self.cookieconsent),
+            ("/static/wasm/main.js", self.wasm_main),
+            ("/static/wasm/search_worker.js", self.wasm_search),
+            ("/static/wasm/distributor_worker.js", self.wasm_distributor),
+            ("/static/wasm/eval_worker.js", self.wasm_eval),
             ("/static/wood-grain.png", self.wood_pattern),
         ]
         super().__init__()
@@ -66,6 +74,15 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
         with open("static/js/cookieconsent.js") as js_file:
             HttpServer._cookieconsent = js_minify(js_file.read())
 
+        with open("static/wasm/main.js") as js_file:
+            HttpServer._wasm_main = js_file.read()
+        with open("static/wasm/search_worker.js") as js_file:
+            HttpServer._wasm_search = js_file.read()
+        with open("static/wasm/distributor_worker.js") as js_file:
+            HttpServer._wasm_distributor = js_file.read()
+        with open("static/wasm/eval_worker.js") as js_file:
+            HttpServer._wasm_eval = js_file.read()
+
         with open("static/hex.png", "rb") as image:
             HttpServer._favicon = image.read()
 
@@ -90,6 +107,42 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
     async def cookieconsent(request: Request) -> Response:
         return request.Response(
             text=HttpServer._cookieconsent, mime_type="text/javascript"
+        )
+
+    @staticmethod
+    async def wasm_main(request: Request) -> Response:
+        return request.Response(
+            text=HttpServer._wasm_main, mime_type="text/javascript"
+        )
+
+    @staticmethod
+    async def wasm_search(request: Request) -> Response:
+        return request.Response(
+            text=HttpServer._wasm_search, mime_type="text/javascript", headers={
+                "Access-Control-Allow-Origin": "*",
+                "Cross-Origin-Opener-Policy": "same-origin",
+                "Cross-Origin-Embedder-Policy": "require-corp",
+            }
+        )
+
+    @staticmethod
+    async def wasm_distributor(request: Request) -> Response:
+        return request.Response(
+            text=HttpServer._wasm_distributor, mime_type="text/javascript", headers={
+                "Access-Control-Allow-Origin": "*",
+                "Cross-Origin-Opener-Policy": "same-origin",
+                "Cross-Origin-Embedder-Policy": "require-corp",
+            }
+        )
+
+    @staticmethod
+    async def wasm_eval(request: Request) -> Response:
+        return request.Response(
+            text=HttpServer._wasm_eval, mime_type="text/javascript", headers={
+                "Access-Control-Allow-Origin": "*",
+                "Cross-Origin-Opener-Policy": "same-origin",
+                "Cross-Origin-Embedder-Policy": "require-corp",
+            }
         )
 
     # @route("/favicon.ico")

@@ -28,8 +28,9 @@ class BaseView:
     ) -> Response:
         if headers is None:
             headers = {
-                "Cross-Origin-Opener-Policy": "same-origin",
-                "Cross-Origin-Embedder-Policy": "require-corp",
+                # the following are set in nginx, but leaving for local, as are important for JS SharedMemory
+                # "Cross-Origin-Opener-Policy": "same-origin",
+                # "Cross-Origin-Embedder-Policy": "require-corp",
             }
 
         request.transport.set_write_buffer_limits(high=TRANSFER_HIGH_LIMIT)
