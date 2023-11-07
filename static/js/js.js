@@ -52,12 +52,13 @@ function connect() {
     cleanUrl();
 
     let wsAddress = script.getAttribute('ws-address');
-    socket = new WebSocket(wsAddress);
+    let prefix = location.protocol === 'https:' ? 'wss' : 'ws';
+    socket = new WebSocket(`${prefix}${wsAddress}`);
 
     socket.onopen = function (e) {
         console.log('Connection established');
 
-        whenAvailable("Cookies", identifyPlayer);
+        whenAvailable('Cookies', identifyPlayer);
     };
 
     socket.onmessage = function (event) {

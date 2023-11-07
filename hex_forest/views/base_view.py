@@ -38,7 +38,7 @@ class BaseView:
         template_context["version"] = config.version
         template_context[
             "websocket_address"
-        ] = f"ws://{config.ws_host}:{config.ws_port}"
+        ] = f"://{config.ws_host}:{config.ws_port}"  # wss/ws determined in javascript
 
         if "player_name" not in template_context:
             cookie = request.cookies.get("livehex-pin", "")
