@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import Optional
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 VERSION_MAJOR: int = 0
@@ -16,6 +18,8 @@ class Config(BaseSettings):
     ws_port: int
     ws_unix_path: str
     db_url: str  # postgres://postgres:pass@db.host:5432/somedb
+    crt_path: Optional[str] = None
+    key_path: Optional[str] = None
 
     @property
     def version(self) -> str:

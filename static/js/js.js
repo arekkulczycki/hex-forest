@@ -1,5 +1,7 @@
+const WebSocketClient = require('simple-websocket');
 let socket;
-const script = document.getElementsByTagName('script')[2];
+
+const script = document.getElementsByTagName('script')[3];
 const mode = script.getAttribute('mode');
 const blackColor = false;
 const whiteColor = true;
@@ -53,16 +55,24 @@ function connect() {
 
     let wsAddress = script.getAttribute('ws-address');
     let prefix = location.protocol === 'https:' ? 'wss' : 'ws';
-    socket = new WebSocket(`${prefix}${wsAddress}`);
+    // socket = new WebSocket(`${prefix}${wsAddress}`);
+    socket = new WebSocketClient({
+        url: `${prefix}${wsAddress}`,
+        protocolVersion: 13,
+        // origin: origin,
+        rejectUnauthorized: false
+    });
 
-    socket.onopen = function (e) {
+    // socket.onopen = function (e) {
+    socket.on('connect', function () {
         console.log('Connection established');
 
         whenAvailable('Cookies', identifyPlayer);
-    };
+    });
 
-    socket.onmessage = function (event) {
-        let data = JSON.parse(event.data);
+    // socket.onmessage = function (event) {
+    socket.on('data', function (data) {
+        // let data = JSON.parse(event.data);
         console.log(data);
         let playerId;
         let playerName;
@@ -186,24 +196,25 @@ function connect() {
             default:
                 console.log('Unsupported event', data)
         }
-    };
+    });
 
-    socket.onclose = function (event) {
-        if (event.wasClean) {
-            console.log(`Connection closed cleanly, code=${event.code}
-                reason=${event.reason}`);
-        } else {
-            console.log('Connection died');
-            console.log('Trying to reconnect...');
-            setTimeout(function() {
-                connect();
-            }, 1000);
-        }
-    };
+    // socket.onclose = function (event) {
+    socket.on('close', function () {
+        // if (event.wasClean) {
+        //     console.log(`Connection closed cleanly, code=${event.code}
+        //         reason=${event.reason}`);
+        // } else {
+        console.log('Connection died, trying to reconnect...');
+        setTimeout(function() {
+            connect();
+        }, 1000);
+        // }
+    });
 
-    socket.onerror = function (error) {
+    // socket.onerror = function (error) {
+    socket.on('error', function (error) {
         console.log(`[error] ${error.message}`);
-    };
+    });
 }
 window.onload = connect;
 // connect();

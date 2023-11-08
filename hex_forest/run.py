@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import asyncio
+import ssl
 from argparse import ArgumentParser
 from multiprocessing import Process
 
@@ -24,20 +25,26 @@ def start_websocket(unix: bool = True):
     import uvloop
     uvloop.install()
 
+    ssl_context = None
+    if config.crt_path and config.key_path:
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context.load_cert_chain(config.crt_path, config.key_path)
+
     async def serve_websocket():
         print("starting websocket server...")
-        async with serve(WsServer().listen, host=config.ws_host, port=config.ws_port):
+        async with serve(WsServer().listen, host=config.ws_host, port=config.ws_port, ssl=ssl_context):
             await asyncio.Future()  # run forever
 
     async def unix_serve_websocket():
         print("starting websocket server...")
-        async with unix_serve(WsServer().listen, path=config.ws_unix_path):
+        async with unix_serve(WsServer().listen, path=config.ws_unix_path, ssl=ssl_context):
             await asyncio.Future()  # run forever
 
     if unix:
         asyncio.run(unix_serve_websocket())
     else:
         asyncio.run(serve_websocket())
+
 
 def start_http():
     HttpServer().run("0.0.0.0", config.http_port)

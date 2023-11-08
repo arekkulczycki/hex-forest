@@ -37,6 +37,7 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
             ("/static/hex.png", self.favicon),
             ("/static/style.css", self.styles),
             ("/static/js/js.js", self.scripts),
+            ("/static/js/bundle.js", self.scripts_npm),
             ("/static/js/cookieconsent.js", self.cookieconsent),
             ("/static/wasm/main.js", self.wasm_main),
             ("/static/wasm/search_worker.js", self.wasm_search),
@@ -70,6 +71,8 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
 
         with open("static/js/js.js") as js_file:
             HttpServer._js = js_minify(js_file.read())
+        with open("static/js/bundle.js") as js_file:
+            HttpServer._js_npm = js_file.read()
 
         with open("static/js/cookieconsent.js") as js_file:
             HttpServer._cookieconsent = js_minify(js_file.read())
@@ -102,6 +105,10 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
     @staticmethod
     async def scripts(request: Request) -> Response:
         return request.Response(text=HttpServer._js, mime_type="text/javascript")
+
+    @staticmethod
+    async def scripts_npm(request: Request) -> Response:
+        return request.Response(text=HttpServer._js_npm, mime_type="text/javascript")
 
     @staticmethod
     async def cookieconsent(request: Request) -> Response:
