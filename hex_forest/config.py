@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 VERSION_MAJOR: int = 0
 VERSION_MINOR: int = 3
-VERSION_PATCH: int = 5
+VERSION_PATCH: int = 6
 
 
 class Config(BaseSettings):
