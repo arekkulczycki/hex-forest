@@ -6,7 +6,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js" async></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.5/js.cookie.min.js" async></script>
     <script src="/static/js/bundle.js?v={{ version }}"></script>
-    <script src="/static/js/js.js?v={{ version }}" ws-address="{{ websocket_address }}" mode="{{ mode }}" version="{{ version }}"></script>
+    <script src="/static/js/js.js?v={{ version }}" ws-host="{{ ws_host }}" ws-port="{{ ws_port }}" mode="{{ mode }}" version="{{ version }}"></script>
     {% if mode == 'ai' %}
     <script src="https://cdn.jsdelivr.net/pyodide/v0.23.2/full/pyodide.js" async></script>
     <script src="/static/wasm/main.js?v={{ version }}" async></script>

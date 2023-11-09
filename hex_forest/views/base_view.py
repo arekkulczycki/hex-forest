@@ -36,9 +36,8 @@ class BaseView:
         request.transport.set_write_buffer_limits(high=TRANSFER_HIGH_LIMIT)
 
         template_context["version"] = config.version
-        template_context[
-            "websocket_address"
-        ] = f"://{config.ws_host}:{config.ws_port}"  # wss/ws determined in javascript
+        template_context["ws_host"] = f"://{config.ws_host}"  # wss/ws determined in javascript
+        template_context["ws_port"] = config.ws_port
 
         if "player_name" not in template_context:
             cookie = request.cookies.get("livehex-pin", "")

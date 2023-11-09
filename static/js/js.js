@@ -53,11 +53,13 @@ function connect() {
     setupEvents();
     cleanUrl();
 
-    let wsAddress = script.getAttribute('ws-address');
+    let wsHost = script.getAttribute('ws-host');
+    let wsPort = script.getAttribute('ws-port');
     let prefix = location.protocol === 'https:' ? 'wss' : 'ws';
+    let wssPort = location.protocol === 'https:' ? '443' : wsPort;
     // socket = new WebSocket(`${prefix}${wsAddress}`);
     socket = new WebSocketClient({
-        url: `${prefix}${wsAddress}`,
+        url: `${prefix}${wsHost}:${wssPort}`,
         protocolVersion: 13,
         // origin: origin,
         rejectUnauthorized: false
