@@ -51,13 +51,16 @@ def start_http():
 
 
 parser = ArgumentParser()
-parser.add_argument("-t", "--target", choices=["http", "ws", "both", "local"], default="both")
+parser.add_argument("-t", "--target", choices=["http", "ws", "wsunix", "both", "local"], default="both")
 
 args = parser.parse_args()
 
 run_async(start_database())
 
 if args.target == "ws":
+    start_websocket(False)
+
+elif args.target == "wsunix":
     start_websocket()
 
 elif args.target == "http":
