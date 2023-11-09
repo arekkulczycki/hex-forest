@@ -32,7 +32,7 @@ def start_websocket(unix: bool = True):
 
     async def serve_websocket():
         print("starting websocket server...")
-        async with serve(WsServer().listen, host=config.ws_host, port=config.ws_port, ssl=ssl_context):
+        async with serve(WsServer().listen, host="localhost", port=config.ws_port, ssl=ssl_context):
             await asyncio.Future()  # run forever
 
     async def unix_serve_websocket():
