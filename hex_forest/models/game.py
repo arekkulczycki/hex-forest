@@ -128,8 +128,10 @@ class Game(Model):
     @property
     async def notation(self) -> str:
         """
-        Get game notation like
+        Get game notation.
         """
+
+        return "".join([move.get_coord() for move in await self.moves])
 
     async def save(
         self,

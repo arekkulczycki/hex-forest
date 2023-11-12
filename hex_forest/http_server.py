@@ -8,12 +8,11 @@ from japronto.response.py import Response
 from jinja2 import Template
 
 from hex_forest.views import AnalysisView, GameView, LobbyView
-from hex_forest.views.ai_view import AiView
 from hex_forest.views.archive_view import ArchiveView
 from hex_forest.views.base_view import BaseView
 
 
-class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
+class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView):
     """
     Japronto web server.
     """
@@ -23,6 +22,7 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
 
     _css: str
     _js: str
+    _js_npm: str
     _cookieconsent: str
     _wasm_main: str
     _wasm_search: str
@@ -30,6 +30,7 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
     _wasm_eval: str
     _favicon: str
     _wood_grain: str
+    _loader: str
 
     def __init__(self) -> None:
         self._routes = [
@@ -44,6 +45,7 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
             ("/static/wasm/distributor_worker.js", self.wasm_distributor),
             ("/static/wasm/eval_worker.js", self.wasm_eval),
             ("/static/wood-grain.png", self.wood_pattern),
+            ("/static/loader.gif", self.loader),
         ]
         super().__init__()
 
@@ -88,9 +90,10 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
 
         with open("static/hex.png", "rb") as image:
             HttpServer._favicon = image.read()
-
         with open("static/wood-grain.png", "rb") as image:
             HttpServer._wood_grain = image.read()
+        with open("static/loader.gif", "rb") as image:
+            HttpServer._loader = image.read()
 
     def collect_routes(self) -> None:
         for url, handler in self._routes:
@@ -161,3 +164,7 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView, AiView):
     @staticmethod
     async def wood_pattern(request: Request) -> Response:
         return request.Response(body=HttpServer._favicon, mime_type="image/png")
+
+    @staticmethod
+    async def loader(request: Request) -> Response:
+        return request.Response(body=HttpServer._loader, mime_type="image/gif")

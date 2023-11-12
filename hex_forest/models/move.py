@@ -31,6 +31,8 @@ class Move(Model):
     done_at: datetime = fields.DatetimeField(auto_now=True)
     seconds_left: Optional[int] = fields.IntField(null=True)
 
+    unique_together = (("game", "index"), ("game", "x", "y"))
+
     class Meta:
         unique_together = (("game", "index"), )
 
@@ -52,6 +54,11 @@ class Move(Model):
     def get_mask(self, size: Optional[int] = None) -> BitBoard:
         return 1 << ((self.x - 1) + self.y * (size or self.game.board_size))
 
+    def get_coord(self) -> str:
+        """"""
+
+        return f"{chr(self.x + 97)}{self.y + 1}"
+
 
 @dataclass
 class FakeMove:
@@ -72,7 +79,7 @@ class FakeMove:
     def get_coord(self) -> str:
         """"""
 
-        return f"{chr(self.x + 97)}{self.y}"
+        return f"{chr(self.x + 97)}{self.y + 1}"
 
     @classmethod
     def from_coord(cls, index: int, coord: str) -> FakeMove:

@@ -25,6 +25,8 @@ class AiView(BaseView):
             0 if game.status is not Status.IN_PROGRESS else 1 if moves_n % 2 == 1 else 2
         )
 
+        print("showing game with AI: ", game.status)
+
         template_context = {
             "size": size,
             "rows": board.rows,
@@ -38,6 +40,7 @@ class AiView(BaseView):
             "game_status": game.status,
             "game_status_text": f"status: {Status(game.status).name.lower().replace('_', ' ')}",
             "stones": [Cell.render_stone(move.color, move.y, move.x) for move in moves],
+            "notation": "".join([move.get_coord() for move in moves]),
             "marker": Cell.render_marker(last_move.color, last_move.y, last_move.x)
             if last_move
             else None,

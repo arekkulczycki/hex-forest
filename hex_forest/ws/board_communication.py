@@ -61,15 +61,28 @@ class BoardCommunication:
         game = await Game.get(id=data["game_id"]).prefetch_related(
             "owner", "white", "black", "moves"
         )
+        if game.status != Status.IN_PROGRESS:
+            message_dict = {
+                "action": "alert",
+                "message": "move received, but game has not started yet",
+            }
+            return await player.send(message_dict)
+
         color = await game.turn
 
-        if (color and player == game.white) or (not color and player == game.black):
+        if game.variant is Variant.AI or ((color and player == game.white) or (not color and player == game.black)):
             cell_id: str = data["cell_id"]
             x, y = Cell.id_to_xy(cell_id)
 
             message_dict = BoardCommunication.get_move_message_dict(player, color, x, y)
+            if game.variant is Variant.AI and (player == game.white) == color:
+                message_dict["action"] = "moveAi"
+                message_dict["notation"] = await game.notation
+
             send_to_game = (
-                (game.send(
+                (player.send(message_dict),)
+                if game.variant is Variant.AI
+                else (game.send(
                     self.connected_clients_rev,
                     message_dict,
                 ),)

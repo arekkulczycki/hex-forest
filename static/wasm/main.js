@@ -57,9 +57,39 @@ async function setupPyodide() {
 const numEvalWorkers = 4;
 var workersReady = 0;
 async function loadHackableBot() {
+  aiLoading(true);
   await setupWorkers(numEvalWorkers);
   await waitUntil(allWorkersReady);
   console.log("all workers ready!");
+  let turn = getAllMoves().length % 2 === 1;
+  let spot = aiSpot();
+  if (spot !== null) {
+    takeSpot({player_name: "AI", color: spot});
+    if (turn === spot) {
+      let notation = $("#notation").html().trim();
+      await makeAiMove(notation);
+    } else {
+      aiLoading(false);
+    }
+  } else {
+    aiLoading(false);
+  }
+}
+
+function aiSpot() {
+  let white = $('#white_box_text').html().trim();
+  let black = $('#black_box_text').html().trim();
+  if (white === 'join' && black !== 'join') {
+    return true;
+  } else if (white !== 'join' && black === 'join') {
+    return false;
+  }
+  return null;
+}
+
+async function makeAiMove(notation) {
+  await reset(notation);
+  await search();
 }
 
 function allWorkersReady() {
@@ -77,8 +107,9 @@ async function waitUntil(condition) {
   });
 }
 
-async function reset() {  // TODO: pass in the notation and size
-  self.searchWorker.postMessage({"type": "reset", "boardInitKwargs": {notation: "", size: 13}});
+async function reset(notation) {  // TODO: pass in the notation and size
+  console.log("notation");
+  self.searchWorker.postMessage({"type": "reset", "boardInitKwargs": {notation: notation, size: 13}});
 }
 
 async function search() {
@@ -86,7 +117,8 @@ async function search() {
 }
 
 async function handleSearchMessage(event) {
-  console.log(event.data);
+  actionAi(event.data);
+  // console.log(event.data);
 }
 
 async function handleEvalMessage(event) {

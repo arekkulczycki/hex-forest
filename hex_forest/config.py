@@ -4,8 +4,8 @@ from typing import Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 VERSION_MAJOR: int = 0
-VERSION_MINOR: int = 3
-VERSION_PATCH: int = 7
+VERSION_MINOR: int = 4
+VERSION_PATCH: int = 1
 
 
 class Config(BaseSettings):

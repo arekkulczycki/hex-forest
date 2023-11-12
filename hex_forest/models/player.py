@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Iterable
@@ -53,9 +54,12 @@ class Player(Model, OnlinePlayer):
         force_create: bool = False,
         force_update: bool = False,
     ) -> None:
-        await super().save(using_db, update_fields, force_create, force_update)
+        # TODO: consider options, query is datetime-based, should we use force_create?
+        await asyncio.wait([
+            super().save(using_db, update_fields, force_create, force_update),
+            Player.invalidate_all_cache()
+        ])
 
-        # TODO: implement invalidation when query is no longer datetime-based
         # if force_create:
         #     asyncio.create_task(Player.invalidate_all_cache())
 

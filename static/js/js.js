@@ -56,24 +56,24 @@ function connect() {
     let wsHost = script.getAttribute('ws-host');
     let wsPort = script.getAttribute('ws-port');
     let prefix = location.protocol === 'https:' ? 'wss' : 'ws';
-    // socket = new WebSocket(`${prefix}${wsAddress}`);
-    socket = new WebSocketClient({
-        url: `${prefix}${wsHost}:${wsPort}`,
-        protocolVersion: 13,
-        // origin: origin,
-        rejectUnauthorized: false
-    });
+    socket = new WebSocket(`${prefix}${wsHost}:${wsPort}`);
+    // socket = new WebSocketClient({
+    //     url: `${prefix}${wsHost}:${wsPort}`,
+    //     protocolVersion: 13,
+    //     // origin: origin,
+    //     rejectUnauthorized: false
+    // });
 
-    // socket.onopen = function (e) {
-    socket.on('connect', function () {
+    socket.onopen = function (e) {
+    // socket.on('connect', function () {
         console.log('Connection established');
 
         whenAvailable('Cookies', identifyPlayer);
-    });
+    };
 
-    // socket.onmessage = function (event) {
-    socket.on('data', function (data) {
-        // let data = JSON.parse(event.data);
+    socket.onmessage = function (event) {
+    // socket.on('data', function (data) {
+        let data = JSON.parse(event.data);
         console.log(data);
         let playerId;
         let playerName;
@@ -93,6 +93,10 @@ function connect() {
             case 'move':
                 handleMove(data);
                 break;
+            case 'moveAi':
+                handleMove(data);
+                pingAi(data.notation);
+                break;
             case 'remove':
                 removeStone(data.id);
                 break;
@@ -110,6 +114,12 @@ function connect() {
                 break;
             case 'gameStarted':
                 gameStarted(data)
+                break;
+            case 'gameStartedAi':
+                gameStarted(data)
+                if (data.isAiTurn) {
+                    pingAi()
+                }
                 break;
             case 'showSwap':
                 showSwap(data)
@@ -197,25 +207,25 @@ function connect() {
             default:
                 console.log('Unsupported event', data)
         }
-    });
+    };
 
-    // socket.onclose = function (event) {
-    socket.on('close', function () {
-        // if (event.wasClean) {
-        //     console.log(`Connection closed cleanly, code=${event.code}
-        //         reason=${event.reason}`);
-        // } else {
-        console.log('Connection died, trying to reconnect...');
-        setTimeout(function() {
-            connect();
-        }, 1000);
-        // }
-    });
+    socket.onclose = function (event) {
+    // socket.on('close', function () {
+        if (event.wasClean) {
+            console.log(`Connection closed cleanly, code=${event.code}
+                reason=${event.reason}`);
+        } else {
+            console.log('Connection died, trying to reconnect...');
+            setTimeout(function() {
+                connect();
+            }, 1000);
+        }
+    };
 
-    // socket.onerror = function (error) {
-    socket.on('error', function (error) {
+    socket.onerror = function (error) {
+    // socket.on('error', function (error) {
         console.log(`[error] ${error.message}`);
-    });
+    };
 }
 window.onload = connect;
 // connect();
@@ -297,14 +307,14 @@ function boardClick(cell_id) {
     let colorMode = $('#color_alternate').prop('checked') ? 'alternate' :
         ($('#color_black').prop('checked') ? 'black' : 'white');
 
-    let color
+    let color;
     if (colorMode === 'alternate') {
         let moves = getAllMoves();
         let nWhiteMoves = moves.filter(x => x.color).length;
         let nBlackMoves = moves.length - nWhiteMoves;
         color = nWhiteMoves < nBlackMoves;
     } else {
-        color = colorMode === 'white'
+        color = colorMode === 'white';
     }
 
     let is_analysis = window.location.pathname.indexOf('/analysis') !== -1;
@@ -948,4 +958,30 @@ function handleResigned(data) {
     $('#status').html(`status: ${color} won`);
 
     $('#game-in-progress-options').hide();
+}
+
+function aiLoading(on) {
+    if (on) {
+        $('#loader').show();
+    } else {
+        $('#loader').hide();
+    }
+}
+
+function pingAi(notation) {
+    aiLoading(true);
+    makeAiMove(notation);
+}
+
+function actionAi(data) {
+    aiLoading(false);
+    console.log("from js.js: ", data);
+    let message = {
+        'action': 'board_put',
+        'mode': 'ai',
+        'game_id': window.location.href.split('/').at(-1),
+        'cell_id': data.move,
+        'color': data.color,
+    };
+    socket.send(JSON.stringify(message))
 }

@@ -89,7 +89,7 @@
                                  onclick={% if mode == "analysis" %}
                                             "putStone('{{ cell.id }}', null, false);"
                                          {% else %}
-                                            "boardClick({{ cell.id }});"
+                                            "boardClick('{{ cell.id }}');"
                                          {% endif %}
                                  oncontextmenu="return putStone('{{ cell.id }}', null, true);">
                         </polygon>
@@ -164,6 +164,9 @@
                     </div>
                     <img id="white_turn" src="/static/hex.png" alt="" class="player_turn" {% if turn != 1 %}style="display: none;"{% endif %}/>
                 </div>
+                <div id="loader" class="loader">
+                    <img id="loader-img" src="/static/loader.gif" alt="" style="width: 100%;"/>
+                </div>
             </div>
             <div id="chat" class="chat">
             </div>
@@ -192,5 +195,6 @@
         </div>
     </div>
     <input id="xmlns" type="hidden" value="http://www.w3.org/2000/svg">
+    <div id="notation" style="visibility: hidden;">{{ notation }}</div>
 </body>
 </html>

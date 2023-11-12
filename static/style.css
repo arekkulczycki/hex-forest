@@ -376,6 +376,13 @@ a {
     color: blue;
 }
 
+.loader {
+    position: absolute;
+    right: 8px;  /*body margin*/
+    width: 4.5vw;
+    display: none;
+}
+
 #coords {
     font-size: 2vw;
     font-weight: bold;
