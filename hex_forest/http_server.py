@@ -163,7 +163,7 @@ class HttpServer(LobbyView, GameView, AnalysisView, ArchiveView):
     # @route("/wood-pattern.png")
     @staticmethod
     async def wood_pattern(request: Request) -> Response:
-        return request.Response(body=HttpServer._favicon, mime_type="image/png")
+        return request.Response(body=HttpServer._wood_grain, mime_type="image/png")
 
     @staticmethod
     async def loader(request: Request) -> Response:
